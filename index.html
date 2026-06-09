@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0459">
-<title>ChargePilot — Automated Claim Entry</title>
+<title>ChargePilot™ — Automated Claim Entry by Resolute MSO</title>
 <meta name="description" content="ChargePilot automates OfficeAlly claim entry — fast, secure, and always up to date. Download the latest version.">
 <style>
   :root{
@@ -74,18 +74,58 @@
   .vnotes li{margin:3px 0}
   .empty{color:var(--faint);text-align:center;padding:18px}
 
+  .navlinks{display:flex;align-items:center;gap:24px}
+  .navlinks a{text-decoration:none;font-weight:600;font-size:14px;color:var(--ink)}
+  .navlinks a:hover{color:var(--blue)}
+  .navlinks .cta:hover{background:var(--blue2);color:#fff}
+  .brandtext{display:flex;flex-direction:column;line-height:1.12}
+  .brandtext .nm sup{font-size:10px;font-weight:800;margin-left:1px}
+  .byline{font-size:10.5px;font-weight:600;color:var(--mute);letter-spacing:.2px}
+  .hero-byline{display:block;margin-top:10px;color:var(--faint);font-size:13px;font-weight:600;letter-spacing:.3px}
+
+  .btnrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
+  .ghost{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--navy);
+         text-decoration:none;font-size:16px;font-weight:700;padding:15px 26px;border-radius:14px;
+         border:1.5px solid var(--line);transition:border-color .12s ease,color .12s ease}
+  .ghost:hover{border-color:var(--blue);color:var(--blue)}
+
+  .pricecard{max-width:540px;margin:10px auto 0;background:var(--card);border:1px solid var(--line);
+             border-radius:18px;padding:28px;box-shadow:0 12px 32px rgba(12,4,89,.08)}
+  .pricetop{display:flex;align-items:center;justify-content:space-between;gap:12px;
+            border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:18px;text-align:left}
+  .pricek{font-size:23px;font-weight:800;color:var(--navy)}
+  .pricesub{color:var(--mute);font-size:13px;margin-top:3px}
+  .pricebadge{background:#eaf0ff;color:var(--navy);border:1px solid #d4ddff;border-radius:999px;
+              padding:7px 15px;font-weight:800;font-size:13px;white-space:nowrap}
+  .pricelist{list-style:none;margin:0 0 24px;padding:0;text-align:left}
+  .pricelist li{position:relative;padding:9px 0 9px 30px;color:var(--ink);font-size:15px;border-bottom:1px solid #f0f2f8}
+  .pricelist li:last-child{border-bottom:0}
+  .pricelist li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:900}
+  .pricecard .dlbtn{width:100%;justify-content:center}
+
   footer{border-top:1px solid var(--line);padding:30px 0;color:var(--mute);font-size:13.5px}
   .foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
   .foot a{color:var(--blue);text-decoration:none;font-weight:600}
 
   @media (max-width:640px){ h1{font-size:34px} .hero{padding:54px 0 40px} }
+  @media (max-width:560px){ .navlinks a:not(.cta){display:none} .navlinks{gap:0} }
 </style>
 </head>
 <body>
 <header>
   <div class="wrap nav">
-    <div class="brand"><span class="logo">C</span> ChargePilot</div>
-    <a class="cta" href="#download">Download</a>
+    <div class="brand">
+      <span class="logo">C</span>
+      <span class="brandtext">
+        <span class="nm">ChargePilot<sup>™</sup></span>
+        <span class="byline">A solution by Resolute MSO</span>
+      </span>
+    </div>
+    <nav class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a class="cta" href="mailto:support@resolutemso.com?subject=Demo%20Request%20-%20ChargePilot">Get a Demo</a>
+    </nav>
   </div>
 </header>
 
@@ -94,12 +134,15 @@
     <div class="wrap">
       <span class="pill"><span class="dot"></span> Trusted by medical billing teams</span>
       <h1>Claim entry, <span class="grad">on autopilot</span>.</h1>
-      <p class="sub">ChargePilot enters your OfficeAlly claims automatically — running several at once, securely, with zero manual typing. Install once; it keeps itself up to date.</p>
+      <p class="sub">ChargePilot™ enters your OfficeAlly claims automatically — running several at once, securely, with zero manual typing. Install once; it keeps itself up to date.</p>
       <div class="dl">
-        <a class="dlbtn" id="dlBtn" href="#" >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-          Download for Windows
-        </a>
+        <div class="btnrow">
+          <a class="dlbtn" id="dlBtn" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download for Windows
+          </a>
+          <a class="ghost" href="mailto:support@resolutemso.com?subject=Demo%20Request%20-%20ChargePilot">Get a Demo</a>
+        </div>
         <span class="dlmeta" id="dlMeta">Latest version • Windows 10 / 11 • per-user install (no admin needed)</span>
       </div>
       <div class="trust">
@@ -111,9 +154,9 @@
     </div>
   </section>
 
-  <section style="padding-top:8px">
+  <section id="features" style="padding-top:8px">
     <div class="wrap">
-      <div class="eyebrow">Why ChargePilot</div>
+      <div class="eyebrow">Why ChargePilot™</div>
       <h2 class="h2">Built to save your team hours, every day</h2>
       <p class="lead">A focused tool that does one thing exceptionally well — turning your charge sheet into entered OfficeAlly claims.</p>
       <div class="grid">
@@ -134,11 +177,38 @@
     </div>
   </section>
 
+  <section id="pricing" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+    <div class="wrap">
+      <div class="eyebrow">Pricing</div>
+      <h2 class="h2">Simple pricing, built around your team</h2>
+      <p class="lead">Plans scale with your number of billers and claim volume. Tell us about your workflow and we'll tailor a quote — no setup fees, no long contracts.</p>
+      <div class="pricecard">
+        <div class="pricetop">
+          <div>
+            <div class="pricek">Custom quote</div>
+            <div class="pricesub">Tailored to your team • Cancel anytime</div>
+          </div>
+          <span class="pricebadge">Contact us</span>
+        </div>
+        <ul class="pricelist">
+          <li>Unlimited OfficeAlly claim entry</li>
+          <li>Up to 5 parallel agents</li>
+          <li>Automatic in-app updates included</li>
+          <li>Secure license activation &amp; support</li>
+        </ul>
+        <a class="dlbtn" href="mailto:support@resolutemso.com?subject=Pricing%20Inquiry%20-%20ChargePilot">Contact us for pricing</a>
+      </div>
+    </div>
+  </section>
+
   <section>
     <div class="wrap" style="text-align:center">
       <h2 class="h2">Ready to get started?</h2>
       <p class="lead">Download, install, and enter your license key — you'll be running claims in minutes.</p>
-      <a class="dlbtn" id="dlBtn2" href="#">Download for Windows</a>
+      <div class="btnrow">
+        <a class="dlbtn" id="dlBtn2" href="#">Download for Windows</a>
+        <a class="ghost" href="mailto:support@resolutemso.com?subject=Demo%20Request%20-%20ChargePilot">Get a Demo</a>
+      </div>
       <p class="dlmeta" style="margin-top:14px">If Windows shows a SmartScreen prompt, click <b>More info → Run anyway</b> (the app is safe; this only appears for newer downloads).</p>
     </div>
   </section>
@@ -146,7 +216,7 @@
 
 <footer>
   <div class="wrap foot">
-    <div>© <span id="yr"></span> ChargePilot — Resolute MSO. All rights reserved.</div>
+    <div>© <span id="yr"></span> ChargePilot™ — A solution by Resolute MSO. All rights reserved.</div>
     <div>Need help? <a id="supLink" href="mailto:support@resolutemso.com">support@resolutemso.com</a></div>
   </div>
 </footer>
