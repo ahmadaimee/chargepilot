@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0459">
+<title>ChargePilot Insights — Resolute MSO</title>
+<style>
+  :root { --navy:#0c0459; --navy2:#1a1080; --blue:#0067c0; --blue2:#2680d4;
+          --green:#1f9d55; --red:#d64545; --amber:#caa106; --txt:#1a2030; --mute:#5b6472; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:system-ui,'Segoe UI',Roboto,sans-serif; color:var(--txt);
+         cursor:default; -webkit-user-select:none; user-select:none; min-height:100vh;
+         background:radial-gradient(1200px 520px at 50% -8%, #e7ecfb 0%, #eef1f9 42%, #f4f6fb 100%); }
+  input { cursor:text; -webkit-user-select:text; user-select:text; }
+  html{ scrollbar-width:thin; scrollbar-color:rgba(12,4,89,.28) transparent; }
+  *::-webkit-scrollbar{ width:10px; height:10px; }
+  *::-webkit-scrollbar-track{ background:transparent; }
+  *::-webkit-scrollbar-thumb{ background:rgba(12,4,89,.24); border-radius:999px;
+        border:2px solid transparent; background-clip:content-box; }
+  *::-webkit-scrollbar-thumb:hover{ background:rgba(12,4,89,.42); background-clip:content-box; }
+
+  @keyframes dashIn { from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  @keyframes floatBlob { 0%{ transform:translate(0,0) scale(1); }
+                         50%{ transform:translate(10px,-12px) scale(1.05); }
+                         100%{ transform:translate(0,0) scale(1); } }
+  @keyframes drawDonut { from{ stroke-dashoffset:var(--circ); } }
+  @keyframes growBar { from{ transform:scaleY(0); } }
+  @keyframes floatLogo{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+
+  .app-bg{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  .app-bg i{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.24;
+             animation:floatBlob 30s ease-in-out infinite; }
+  .app-bg i:nth-child(1){ width:360px;height:360px; left:-80px; top:-60px; background:radial-gradient(circle,#6f7bff,#0c0459); }
+  .app-bg i:nth-child(2){ width:320px;height:320px; right:-90px; top:80px; background:radial-gradient(circle,#36b8ff,#0067c0); animation-delay:-8s; }
+  .app-bg i:nth-child(3){ width:300px;height:300px; left:35%; bottom:-110px; background:radial-gradient(circle,#9ab4ff,#1a1080); animation-delay:-15s; }
+
+  header{ position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center;
+          padding:11px 16px; color:var(--navy); background:rgba(255,255,255,.6);
+          -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+          border-bottom:1px solid rgba(255,255,255,.6); box-shadow:0 4px 22px rgba(12,4,89,.06); }
+  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand .logo{ width:34px; height:34px; border-radius:10px; flex:0 0 auto; color:#fff;
+        background:linear-gradient(135deg,var(--navy),var(--blue)); display:flex; align-items:center;
+        justify-content:center; font-weight:800; font-size:19px;
+        box-shadow:0 6px 16px rgba(12,4,89,.32), inset 0 1px 0 rgba(255,255,255,.4); }
+  .brand .bt{ display:flex; flex-direction:column; line-height:1.12; }
+  .brand .bt .nm{ font-weight:800; font-size:15.5px; color:var(--navy); }
+  .brand .bt .nm sup{ font-size:9px; font-weight:800; }
+  .brand .bt .by{ font-size:10px; font-weight:600; color:var(--mute); letter-spacing:.2px; }
+  #who{ font-size:12px; color:var(--mute); font-weight:500; }
+  .logout{ background:rgba(12,4,89,.08); color:var(--navy); border:0; padding:8px 13px; font-size:13px;
+           border-radius:11px; font-weight:700; cursor:pointer; }
+  .logout:hover{ background:rgba(12,4,89,.14); }
+  .menu{ position:relative; cursor:pointer; user-select:none; }
+  .menu #caret{ font-size:11px; color:var(--mute); }
+  .dropdown{ display:none; position:absolute; right:0; top:calc(100% + 12px);
+        background:rgba(255,255,255,.85); -webkit-backdrop-filter:blur(26px) saturate(180%);
+        backdrop-filter:blur(26px) saturate(180%); color:var(--txt); border-radius:16px; padding:14px; width:255px;
+        box-shadow:0 14px 40px rgba(12,4,89,.25); border:1px solid rgba(255,255,255,.7); z-index:30; text-align:left; }
+  .dropdown input{ font-size:14px; }
+  .menu.open .dropdown{ display:block; animation:dashIn .25s ease both; }
+
+  main{ padding:18px 22px 40px; max-width:none; margin:0; }
+  .card { border-radius:20px; padding:18px; margin-bottom:14px; background:rgba(255,255,255,.55);
+          -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%);
+          border:1px solid rgba(255,255,255,.65); box-shadow:0 8px 28px rgba(12,4,89,.1), inset 0 1px 0 rgba(255,255,255,.7);
+          animation:dashIn .45s cubic-bezier(.2,.8,.2,1) both; }
+  input{ width:100%; padding:12px; border:1px solid rgba(12,4,89,.12); border-radius:13px; font-size:15px;
+         margin-bottom:9px; color:var(--txt); background:rgba(255,255,255,.7); outline:none;
+         transition:border-color .15s, box-shadow .15s; }
+  input:focus{ border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,103,192,.14); }
+  button.primary{ width:100%; border:0; border-radius:13px; padding:12px; font-size:14px; font-weight:700; color:#fff;
+         cursor:pointer; background:linear-gradient(135deg,var(--blue),var(--navy)); box-shadow:0 6px 18px rgba(12,4,89,.22);
+         transition:transform .15s, filter .15s; }
+  button.primary:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+  .hint{ color:var(--mute); font-size:12px; margin-top:8px; }
+  .idle{ color:#8a93a3; }
+
+  /* login */
+  #login{ max-width:380px; margin:7vh auto 0; text-align:center; padding:26px 24px 20px; }
+  #login .logo-xl{ width:66px; height:66px; border-radius:19px; margin:0 auto 14px; color:#fff;
+        background:linear-gradient(135deg,var(--navy),var(--blue)); display:flex; align-items:center;
+        justify-content:center; font-weight:800; font-size:36px;
+        box-shadow:0 14px 34px rgba(12,4,89,.34), inset 0 1px 0 rgba(255,255,255,.45); animation:floatLogo 5s ease-in-out infinite; }
+  #login .title{ font-size:22px; font-weight:800; color:var(--navy); }
+  #login .title sup{ font-size:11px; font-weight:800; }
+  #login .tagline{ color:var(--mute); font-size:13px; margin:7px 4px 18px; line-height:1.55; }
+  #login input{ text-align:left; }
+  #login a{ color:var(--blue); font-size:13px; cursor:pointer; text-decoration:underline; }
+  #login .by{ margin-top:18px; padding-top:14px; border-top:1px solid rgba(12,4,89,.08);
+        color:var(--mute); font-size:12px; font-weight:600; }
+  #login .by b{ color:var(--navy); }
+
+  /* left sidebar of assigned licenses */
+  .shell{ display:flex; align-items:flex-start; gap:20px; }
+  .content{ flex:1 1 auto; min-width:0; max-width:920px; }
+  #sidebar{ flex:0 0 240px; position:sticky; top:calc(var(--hh,60px) + 16px); align-self:flex-start;
+        display:flex; flex-direction:column; gap:5px; padding:14px; border-radius:20px;
+        background:rgba(255,255,255,.55); -webkit-backdrop-filter:blur(24px) saturate(180%);
+        backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.65);
+        box-shadow:0 8px 28px rgba(12,4,89,.1), inset 0 1px 0 rgba(255,255,255,.7);
+        max-height:calc(100vh - var(--hh,60px) - 32px); overflow:auto;
+        animation:dashIn .5s cubic-bezier(.2,.8,.2,1) both; }
+  #sidebar .sb-label{ font-size:10.5px; font-weight:800; letter-spacing:1px; color:var(--mute);
+        text-transform:uppercase; padding:4px 10px 8px; }
+  .navitem{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+        padding:11px 13px; border-radius:14px; background:transparent; color:var(--mute);
+        font-weight:700; font-size:14px; cursor:pointer; border:0;
+        transition:background .22s, color .2s, box-shadow .2s; }
+  .navitem svg{ width:18px; height:18px; flex:0 0 auto; }
+  .navitem span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .navitem:hover{ background:rgba(12,4,89,.06); color:var(--navy); }
+  .navitem.active{ background:linear-gradient(135deg,var(--blue),var(--navy)); color:#fff;
+        box-shadow:0 6px 16px rgba(12,4,89,.3); }
+  @media(max-width:820px){
+    main{ padding:14px 14px 32px; }
+    .shell{ flex-direction:column; gap:12px; }
+    .content{ max-width:none; }
+    #sidebar{ order:-1; flex:none; width:100%; flex-direction:row; gap:4px; overflow-x:auto;
+        top:var(--hh,60px); padding:8px; border-radius:16px; max-height:none; scrollbar-width:none; }
+    #sidebar::-webkit-scrollbar{ display:none; }
+    #sidebar .sb-label{ display:none; }
+    .navitem{ flex-direction:column; gap:4px; min-width:78px; padding:8px 10px; font-size:11px; text-align:center; }
+  }
+
+  /* ===== insights dashboard (Liquid Glass) ===== */
+  .glass{ position:relative; border-radius:22px; padding:18px; background:rgba(255,255,255,.55);
+          -webkit-backdrop-filter:blur(26px) saturate(180%); backdrop-filter:blur(26px) saturate(180%);
+          border:1px solid rgba(255,255,255,.65); box-shadow:0 8px 30px rgba(12,4,89,.12), inset 0 1px 0 rgba(255,255,255,.7);
+          margin-bottom:14px; animation:dashIn .5s cubic-bezier(.2,.8,.2,1) both; }
+  .glass.d2{ animation-delay:.05s } .glass.d3{ animation-delay:.1s } .glass.d4{ animation-delay:.15s }
+  .glass-title{ font-weight:700; font-size:15px; color:var(--navy); display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .glass-title .sub{ font-weight:500; font-size:12px; color:#6b7280; margin-left:auto; }
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  @media(max-width:560px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
+  .kpi{ border-radius:16px; padding:12px; background:rgba(255,255,255,.45); border:1px solid rgba(255,255,255,.6);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.6); }
+  .kpi .n{ font-size:26px; font-weight:800; line-height:1; color:var(--navy); font-variant-numeric:tabular-nums; }
+  .kpi .l{ font-size:11px; color:#5b6472; margin-top:6px; text-transform:uppercase; letter-spacing:.4px; }
+  .kpi .n.green{ color:var(--green) } .kpi .n.red{ color:var(--red) } .kpi .n.amber{ color:#b8860b }
+  .donutwrap{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .donut{ width:132px; height:132px; flex:0 0 auto; }
+  .donut circle{ fill:none; stroke-width:14; stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%; }
+  .donut .ring{ stroke:rgba(12,4,89,.08); }
+  .donut .seg{ animation:drawDonut 1.1s cubic-bezier(.2,.8,.2,1) both; }
+  .donut-center{ font-size:24px; font-weight:800; fill:var(--navy); }
+  .donut-sub{ font-size:9px; fill:#6b7280; letter-spacing:1px; }
+  .legend{ font-size:13px; color:#33384a; } .legend div{ display:flex; align-items:center; gap:8px; margin:5px 0; }
+  .dot{ width:11px; height:11px; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.5); }
+  .trend{ display:flex; align-items:flex-end; gap:6px; height:120px; padding-top:6px; }
+  .trend .col{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; gap:2px; min-width:6px; }
+  .trend .col .g,.trend .col .r{ border-radius:4px 4px 2px 2px; transform-origin:bottom; animation:growBar .7s cubic-bezier(.2,.8,.2,1) both; }
+  .trend .col .g{ background:linear-gradient(180deg,#28d17c,#119d5a); }
+  .trend .col .r{ background:linear-gradient(180deg,#ff8a8a,#d64545); border-radius:2px; }
+  .trend .col .cap{ font-size:9px; color:#8a93a3; text-align:center; margin-top:4px; white-space:nowrap; }
+  .stepbar{ margin:9px 0; } .stepbar .row2{ display:flex; justify-content:space-between; font-size:12.5px; color:#33384a; margin-bottom:4px; }
+  .stepbar .row2 b{ color:var(--navy); } .stepbar .track{ height:9px; border-radius:6px; background:rgba(12,4,89,.07); overflow:hidden; }
+  .stepbar .fill{ height:100%; border-radius:6px; transform-origin:left; background:linear-gradient(90deg,#ff9a6b,#d64545); animation:growBar .8s cubic-bezier(.2,.8,.2,1) both; }
+  details.run{ border-radius:16px; background:rgba(255,255,255,.45); border:1px solid rgba(255,255,255,.6); margin-bottom:9px; overflow:hidden; }
+  details.run>summary{ list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:center; gap:10px; }
+  details.run>summary::-webkit-details-marker{ display:none; }
+  details.run .chev{ transition:transform .25s; color:#8a93a3; }
+  details.run[open] .chev{ transform:rotate(90deg); }
+  .runpill{ padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; color:#fff; }
+  .runpill.ok{ background:var(--green) } .runpill.bad{ background:var(--red) } .runpill.part{ background:#caa106 }
+  .runpill.run{ background:#3b82f6 } .runpill.stop{ background:#777 }
+  .runmeta{ font-size:12px; color:#5b6472; } .runmeta b{ color:var(--navy); }
+  .runrate{ margin-left:auto; font-weight:800; color:var(--navy); font-variant-numeric:tabular-nums; }
+  .failrow{ padding:9px 14px; border-top:1px solid rgba(12,4,89,.06); font-size:12.5px; display:flex; gap:10px; align-items:flex-start; }
+  .failrow .stepchip{ flex:0 0 auto; padding:2px 9px; border-radius:7px; font-size:11px; font-weight:700; background:rgba(214,69,69,.12); color:#b3322f; white-space:nowrap; }
+  .failrow .who{ font-weight:600; color:var(--navy); } .failrow .why{ color:#5b6472; }
+  .seg-emptied{ color:#6b7280; text-align:center; padding:18px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="app-bg"><i></i><i></i><i></i></div>
+<header>
+  <span class="brand">
+    <span class="logo">C</span>
+    <span class="bt">
+      <span class="nm">ChargePilot<sup>™</sup> &nbsp;<span style="font-weight:600;color:var(--mute)">Insights</span></span>
+      <span class="by">A solution by Resolute MSO</span>
+    </span>
+  </span>
+  <span style="display:flex;align-items:center;gap:10px">
+    <span class="menu" id="userMenu" onclick="toggleMenu(event)">
+      <span id="who"></span><span id="caret" style="display:none">&nbsp;▾</span>
+      <div class="dropdown">
+        <div style="font-weight:700;margin-bottom:8px;color:var(--navy)">Change password</div>
+        <input id="curPw" type="password" placeholder="current password" autocomplete="current-password">
+        <input id="newPw" type="password" placeholder="new password (min 6)" autocomplete="new-password">
+        <button class="primary" onclick="changePw()">Update password</button>
+        <div id="pwMsg" class="hint"></div>
+      </div>
+    </span>
+    <button id="logout" class="logout" onclick="signOutNow()" style="display:none">Sign out</button>
+  </span>
+</header>
+<main>
+  <div id="login" class="card">
+    <div class="logo-xl">C</div>
+    <div class="title">ChargePilot<sup>™</sup> Insights</div>
+    <div class="tagline">Sign in to view your automation insights — how many claims ran,
+      what succeeded, and what needs review.</div>
+    <input id="email" type="email" placeholder="your email" autocomplete="username"
+           onkeydown="if(event.key==='Enter')signIn()">
+    <input id="pass" type="password" placeholder="password" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')signIn()">
+    <button class="primary" onclick="signIn()">Sign in</button>
+    <div style="margin-top:12px"><a onclick="resetPw()">Forgot password?</a></div>
+    <div id="loginErr" class="hint"></div>
+    <div class="by">A solution by <b>Resolute MSO</b></div>
+  </div>
+
+  <div id="app" style="display:none">
+   <div class="shell">
+    <aside id="sidebar">
+      <div class="sb-label">Your licenses</div>
+      <div id="navlist"></div>
+    </aside>
+    <div class="content"><div id="dash"></div></div>
+   </div>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD2uKP4q8-NI_c3LAdMoOMduQfUA6Za_4g",
+  authDomain: "officeally-license.firebaseapp.com",
+  databaseURL: "https://officeally-license-default-rtdb.firebaseio.com",
+  projectId: "officeally-license",
+  messagingSenderId: "418613096787",
+  appId: "1:418613096787:web:59256e8ab188c32095f1a6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+let KEYS = [];            // license keys linked to this client
+let RUNS = {};            // key -> { mid: { rid: run } }
+let LIC  = {};            // key -> license record (name + heartbeat)
+let selKey = null;        // selected license key
+const _esc = s => String(s==null?'':s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function signIn(){
+  auth.signInWithEmailAndPassword((document.getElementById('email').value||'').trim(),
+                                  document.getElementById('pass').value)
+      .catch(e => document.getElementById('loginErr').textContent = e.message);
+}
+function signOutNow(){ KEYS=[]; RUNS={}; LIC={}; selKey=null; auth.signOut(); }
+function resetPw(){
+  const e = (document.getElementById('email').value||'').trim();
+  const el = document.getElementById('loginErr');
+  if(!e){ el.style.color='#d64545'; el.textContent='Enter your email above first, then tap Forgot password.'; return; }
+  auth.sendPasswordResetEmail(e)
+    .then(()=>{ el.style.color='#1f9d55'; el.textContent='Password reset link sent to '+e; })
+    .catch(err=>{ el.style.color='#d64545'; el.textContent=err.message; });
+}
+
+// keep the sticky sidebar pinned just below the glass header
+function _setHH(){ const h=document.querySelector('header');
+  if(h) document.documentElement.style.setProperty('--hh', h.offsetHeight + 'px'); }
+window.addEventListener('resize', _setHH);
+
+// header user menu + change password
+function toggleMenu(e){
+  if (e.target.closest('.dropdown')) return;
+  document.getElementById('userMenu').classList.toggle('open');
+  curPw.value=''; newPw.value=''; pwMsg.textContent='';
+}
+document.addEventListener('click', e => {
+  const m = document.getElementById('userMenu');
+  if (m && !m.contains(e.target)) m.classList.remove('open');
+});
+function changePw(){
+  const u = auth.currentUser; if(!u) return;
+  const np = newPw.value;
+  if(np.length<6){ pwMsg.style.color='#d64545'; pwMsg.textContent='New password must be at least 6 characters.'; return; }
+  const cred = firebase.auth.EmailAuthProvider.credential(u.email, curPw.value);
+  u.reauthenticateWithCredential(cred)
+    .then(()=> u.updatePassword(np))
+    .then(()=>{ pwMsg.style.color='#1f9d55'; pwMsg.textContent='Password updated.'; curPw.value=newPw.value=''; })
+    .catch(e=>{ pwMsg.style.color='#d64545';
+      pwMsg.textContent = (e.code==='auth/invalid-credential'||e.code==='auth/wrong-password')
+        ? 'Current password is incorrect. Use "Forgot password?" on the sign-in screen if needed.'
+        : (e.code==='auth/weak-password' ? 'New password is too weak (min 6 characters).' : e.message); });
+}
+
+auth.onAuthStateChanged(u => {
+  document.getElementById('login').style.display = u ? 'none' : 'block';
+  document.getElementById('app').style.display   = u ? 'block' : 'none';
+  document.getElementById('logout').style.display = u ? 'inline-block' : 'none';
+  document.getElementById('caret').style.display = u ? 'inline' : 'none';
+  document.getElementById('who').textContent = u ? (u.email||'') : '';
+  if (u) { _setHH(); onSignedIn(u); }
+  else { KEYS=[]; RUNS={}; LIC={}; selKey=null; }
+});
+
+function onSignedIn(u){
+  // An ADMIN account must never get stuck on the insights portal (e.g. in a shared
+  // browser after a client signed out here) — send them to the admin console.
+  db.ref('admin_roles/'+u.uid).once('value')
+    .then(s => { if(s.exists()) location.replace('index.html'); else _startPortal(u); })
+    .catch(()=> _startPortal(u));
+}
+function _startPortal(u){
+  db.ref('portal_users/'+u.uid).on('value', s => {
+    const rec = s.val();
+    if(!rec){
+      document.getElementById('navlist').innerHTML = '<div class="idle" style="padding:6px 10px;font-size:12px">No licenses assigned.</div>';
+      document.getElementById('dash').innerHTML =
+        '<div class="card"><div class="seg-emptied">No insights are linked to your account yet.'+
+        '<br>Please contact your administrator at <b>support@resolutemso.com</b>.</div></div>';
+      return;
+    }
+    KEYS = Object.keys(rec.keys||{}).filter(k => (rec.keys||{})[k]);
+    if(!KEYS.includes(selKey)) selKey = KEYS[0] || null;
+    // (re)subscribe to each linked license's runs + record (name/heartbeat)
+    KEYS.forEach(k => {
+      db.ref('runs/'+k).on('value', rs => { RUNS[k] = rs.val() || {}; if(k===selKey) renderDash(); });
+      db.ref('licenses/'+k).on('value', ls => { LIC[k] = ls.val() || {}; renderSidebar(); if(k===selKey) renderDash(); });
+    });
+    renderSidebar(); renderDash();
+  });
+}
+
+function _licName(k){ return (LIC[k] && LIC[k].name) ? LIC[k].name : k; }
+const _LICICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>';
+function renderSidebar(){
+  const el = document.getElementById('navlist');
+  if(!el) return;
+  el.innerHTML = KEYS.length ? KEYS.map(k =>
+    `<button class="navitem ${k===selKey?'active':''}" onclick="pickKey('${k}')" title="${_esc(_licName(k))}">${_LICICON}<span>${_esc(_licName(k))}</span></button>`
+  ).join('') : '<div class="idle" style="padding:6px 10px;font-size:12px">No licenses assigned.</div>';
+}
+function pickKey(k){ selKey = k; renderSidebar(); renderDash(); }
+
+// ---- shared insights helpers (same model as the admin dashboard) ----
+function _allRuns(runsMap, hb){
+  const out = [];
+  Object.entries(runsMap || {}).forEach(([mid, runs]) => {
+    Object.entries(runs || {}).forEach(([rid, r]) => {
+      if(!r || typeof r !== 'object') return;
+      const failures = Object.values(r.failures || {}).filter(Boolean);
+      out.push(Object.assign({}, r, { mid, rid, dev:(hb[mid]&&hb[mid].name)||mid,
+        ok:+r.ok||0, failed:+r.failed||0, total:+r.total||0, done:+r.done||0, failures }));
+    });
+  });
+  out.sort((a,b)=>((b.started|| +b.rid||0) - (a.started|| +a.rid||0)));
+  return out;
+}
+function _dashAgg(runs){
+  let ok=0, failed=0, loaded=0; const steps={};
+  runs.forEach(r => { ok+=r.ok; failed+=r.failed; loaded += (r.total||r.done||0);
+    r.failures.forEach(f => { const s=f.step||'Review'; steps[s]=(steps[s]||0)+1; }); });
+  const proc = ok+failed;
+  return { ok, failed, loaded, proc, rate: proc? Math.round(100*ok/proc):0,
+           steps: Object.entries(steps).sort((a,b)=>b[1]-a[1]) };
+}
+function _runRate(r){ const p=r.ok+r.failed; return p? Math.round(100*r.ok/p):0; }
+function _dt(ts){ if(!ts) return '—'; const d=new Date(ts*1000);
+  return d.toLocaleDateString([], {month:'short',day:'numeric'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+function _dur(r){ if(!r.started||!r.finished) return ''; let s=r.finished-r.started;
+  if(s<60) return s+'s'; if(s<3600) return Math.round(s/60)+'m'; return (s/3600).toFixed(1)+'h'; }
+function _countUp(){
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const to = +el.getAttribute('data-count') || 0;
+    if(to <= 0){ el.textContent = '0' + (el.dataset.suffix||''); return; }
+    const dur = 700, t0 = performance.now();
+    const tick = now => { const p = Math.min(1,(now-t0)/dur);
+      el.textContent = Math.round(to*(1-Math.pow(1-p,3))) + (el.dataset.suffix||'');
+      if(p<1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+}
+
+function renderDash(){
+  const host = document.getElementById('dash');
+  if(!host) return;
+  if(!selKey){ host.innerHTML = '<div class="card"><div class="seg-emptied">No license selected.</div></div>'; return; }
+  const runs = _allRuns(RUNS[selKey], (LIC[selKey]||{}).heartbeat || {});
+  const a = _dashAgg(runs);
+  const R=52, CIRC=2*Math.PI*R, off=CIRC*(1-(a.rate/100));
+  const donut = `<svg class="donut" viewBox="0 0 132 132">
+      <circle class="ring" cx="66" cy="66" r="${R}"></circle>
+      <circle class="seg" cx="66" cy="66" r="${R}" stroke="url(#g1)"
+        stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="--circ:${CIRC.toFixed(1)}"></circle>
+      <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#28d17c"/><stop offset="1" stop-color="#119d5a"/></linearGradient></defs>
+      <text class="donut-center" x="66" y="64" text-anchor="middle">${a.rate}%</text>
+      <text class="donut-sub" x="66" y="80" text-anchor="middle">SUCCESS</text></svg>`;
+  const recent = runs.slice(0,16).reverse();
+  const maxP = Math.max(1, ...recent.map(r=>r.ok+r.failed));
+  const trend = recent.length ? `<div class="trend">${recent.map((r,i)=>{
+      const okH=Math.round(70*r.ok/maxP), bad=Math.round(70*r.failed/maxP), delay=(i*0.04).toFixed(2);
+      return `<div class="col" title="${_dt(r.started)} · ${r.ok}/${r.ok+r.failed} clean">
+        ${bad?`<div class="r" style="height:${bad}px;animation-delay:${delay}s"></div>`:''}
+        ${okH?`<div class="g" style="height:${okH}px;animation-delay:${delay}s"></div>`:''}
+        <div class="cap">${_runRate(r)}%</div></div>`; }).join('')}</div>`
+    : '<div class="seg-emptied">No runs recorded yet.</div>';
+  const stepMax = Math.max(1, ...a.steps.map(s=>s[1]));
+  const stepsHtml = a.steps.length ? a.steps.slice(0,7).map(([s,n])=>`
+    <div class="stepbar"><div class="row2"><span>${_esc(s)}</span><b>${n}</b></div>
+      <div class="track"><div class="fill" style="width:${Math.round(100*n/stepMax)}%"></div></div></div>`).join('')
+    : '<div class="seg-emptied">No failures — every claim came through clean. 🎉</div>';
+  const runsHtml = runs.length ? runs.slice(0,40).map(r=>{
+    const rate=_runRate(r); let cls='ok', txt=rate+'% clean';
+    if(r.status==='running'){ cls='run'; txt='running'; }
+    else if(r.status==='stopped'){ cls='stop'; txt='stopped'; }
+    else if(r.failed && r.ok){ cls='part'; }
+    else if(r.failed && !r.ok){ cls='bad'; txt='all flagged'; }
+    const fails = r.failures.slice().sort((x,y)=>(x.row||0)-(y.row||0));
+    return `<details class="run"><summary>
+        <span class="chev">▶</span><span class="runpill ${cls}">${txt}</span>
+        <span class="runmeta"><b>${r.ok}</b>/${r.ok+r.failed} clean · ${r.total||r.done||0} loaded${r.invalid?` · ${r.invalid} invalid`:''}${r.test_mode?' · <b>test</b>':''}<br>${_dt(r.started)} · ${_esc(r.dev)}${_dur(r)?` · ${_dur(r)}`:''}</span>
+        <span class="runrate">${rate}%</span></summary>
+      ${fails.length ? fails.map(f=>`<div class="failrow"><span class="stepchip">${_esc(f.step||'Review')}</span>
+        <span><span class="who">Row ${_esc(f.row)} · ${_esc(f.patient||'')}</span>${f.attempt>1?`<span class="runmeta"> (attempt ${f.attempt})</span>`:''}
+        <br><span class="why">${_esc(f.reason||'')}</span></span></div>`).join('')
+        : '<div class="failrow"><span class="why" style="color:var(--green)">All claims clean — nothing to review.</span></div>'}
+    </details>`; }).join('')
+    : '<div class="seg-emptied">No runs yet. Insights will appear here automatically once ChargePilot processes claims.</div>';
+  const lastRun = runs[0] ? _dt(runs[0].started) : 'never';
+  host.innerHTML = `
+    <div class="glass">
+      <div class="glass-title">${_esc(_licName(selKey))} · Insights <span class="sub">last run ${lastRun} · ${runs.length} run(s)</span></div>
+      <div class="kpis">
+        <div class="kpi"><div class="n" data-count="${a.loaded}">0</div><div class="l">Claims loaded</div></div>
+        <div class="kpi"><div class="n green" data-count="${a.ok}">0</div><div class="l">Succeeded</div></div>
+        <div class="kpi"><div class="n red" data-count="${a.failed}">0</div><div class="l">Failed / review</div></div>
+        <div class="kpi"><div class="n amber" data-count="${a.rate}" data-suffix="%">0</div><div class="l">Success rate</div></div>
+      </div>
+    </div>
+    <div class="glass d2">
+      <div class="glass-title">Success breakdown</div>
+      <div class="donutwrap">${donut}<div class="legend">
+        <div><span class="dot" style="background:#19c37d"></span> Clean &amp; saved — <b>${a.ok}</b></div>
+        <div><span class="dot" style="background:#d64545"></span> Failed / needs review — <b>${a.failed}</b></div>
+        <div><span class="dot" style="background:rgba(12,4,89,.2)"></span> Total processed — <b>${a.proc}</b></div>
+      </div></div>
+    </div>
+    <div class="glass d3"><div class="glass-title">Success trend <span class="sub">recent runs</span></div>${trend}</div>
+    <div class="glass d3"><div class="glass-title">Where claims fail <span class="sub">by step</span></div>${stepsHtml}</div>
+    <div class="glass d4"><div class="glass-title">Run history <span class="sub">tap a run for flagged claims</span></div>${runsHtml}</div>`;
+  _countUp();
+}
+</script>
+</body>
+</html>

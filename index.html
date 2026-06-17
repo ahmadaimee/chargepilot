@@ -78,6 +78,9 @@
   .navlinks a{text-decoration:none;font-weight:600;font-size:14px;color:var(--ink)}
   .navlinks a:hover{color:var(--blue)}
   .navlinks .cta:hover{background:var(--blue2);color:#fff}
+  .navlinks .login{background:#fff;color:var(--navy);border:1.5px solid var(--line);
+        padding:8px 16px;border-radius:10px;font-weight:700;text-decoration:none}
+  .navlinks .login:hover{border-color:var(--blue);color:var(--blue)}
   .brandtext{display:flex;flex-direction:column;line-height:1.12}
   .brandtext .nm sup{font-size:10px;font-weight:800;margin-left:1px}
   .byline{font-size:10.5px;font-weight:600;color:var(--mute);letter-spacing:.2px}
@@ -108,7 +111,7 @@
   .foot a{color:var(--blue);text-decoration:none;font-weight:600}
 
   @media (max-width:640px){ h1{font-size:34px} .hero{padding:54px 0 40px} }
-  @media (max-width:560px){ .navlinks a:not(.cta){display:none} .navlinks{gap:0} }
+  @media (max-width:560px){ .navlinks a:not(.cta):not(.login){display:none} .navlinks{gap:8px} }
 </style>
 </head>
 <body>
@@ -124,6 +127,7 @@
     <nav class="navlinks">
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
+      <a class="login" href="/portal">Client Login</a>
       <a class="cta" href="mailto:support@resolutemso.com?subject=Demo%20Request%20-%20ChargePilot">Get a Demo</a>
     </nav>
   </div>
@@ -217,7 +221,7 @@
 <footer>
   <div class="wrap foot">
     <div>© <span id="yr"></span> ChargePilot™ — A solution by Resolute MSO. All rights reserved.</div>
-    <div>Need help? <a id="supLink" href="mailto:support@resolutemso.com">support@resolutemso.com</a></div>
+    <div><a href="/portal">Client Login</a> &nbsp;·&nbsp; Need help? <a id="supLink" href="mailto:support@resolutemso.com">support@resolutemso.com</a></div>
   </div>
 </footer>
 
