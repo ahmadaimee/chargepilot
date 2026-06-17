@@ -87,6 +87,11 @@
   #login .title sup{ font-size:11px; font-weight:800; }
   #login .tagline{ color:var(--mute); font-size:13px; margin:7px 4px 18px; line-height:1.55; }
   #login input{ text-align:left; }
+  .pwwrap{ position:relative; margin-bottom:9px; }
+  .pwwrap > input{ margin-bottom:0; padding-right:66px; }
+  .pweye{ position:absolute; right:7px; top:50%; transform:translateY(-50%); background:transparent;
+        border:0; cursor:pointer; padding:6px 9px; color:var(--blue); font-size:12px; font-weight:700; border-radius:8px; }
+  .pweye:hover{ background:rgba(0,103,192,.1); }
   #login a{ color:var(--blue); font-size:13px; cursor:pointer; text-decoration:underline; }
   #login .by{ margin-top:18px; padding-top:14px; border-top:1px solid rgba(12,4,89,.08);
         color:var(--mute); font-size:12px; font-weight:600; }
@@ -205,8 +210,11 @@
       what succeeded, and what needs review.</div>
     <input id="email" type="email" placeholder="your email" autocomplete="username"
            onkeydown="if(event.key==='Enter')signIn()">
-    <input id="pass" type="password" placeholder="password" autocomplete="current-password"
-           onkeydown="if(event.key==='Enter')signIn()">
+    <div class="pwwrap">
+      <input id="pass" type="password" placeholder="password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')signIn()">
+      <button type="button" class="pweye" onclick="togglePw(this)">Show</button>
+    </div>
     <button class="primary" onclick="signIn()">Sign in</button>
     <div style="margin-top:12px"><a onclick="resetPw()">Forgot password?</a></div>
     <div id="loginErr" class="hint"></div>
@@ -252,6 +260,8 @@ function signIn(){
       .catch(e => document.getElementById('loginErr').textContent = e.message);
 }
 function signOutNow(){ KEYS=[]; RUNS={}; LIC={}; selKey=null; auth.signOut(); }
+function togglePw(btn){ const p=document.getElementById('pass'); const show=p.type==='password';
+  p.type = show?'text':'password'; btn.textContent = show?'Hide':'Show'; }
 function resetPw(){
   const e = (document.getElementById('email').value||'').trim();
   const el = document.getElementById('loginErr');
@@ -304,7 +314,7 @@ function onSignedIn(u){
   // An ADMIN account must never get stuck on the insights portal (e.g. in a shared
   // browser after a client signed out here) — send them to the admin console.
   db.ref('admin_roles/'+u.uid).once('value')
-    .then(s => { if(s.exists()) location.replace('index.html'); else _startPortal(u); })
+    .then(s => { if(s.exists()) location.replace('https://officeally-license.web.app/'); else _startPortal(u); })
     .catch(()=> _startPortal(u));
 }
 function _startPortal(u){
