@@ -1,0 +1,1469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0459">
+<link rel="manifest" href="manifest.json">
+<title>ChargePilot Admin — Resolute MSO</title>
+<style>
+  :root { --navy:#0c0459; --navy2:#1a1080; --blue:#0067c0; --blue2:#2680d4;
+          --green:#1f9d55; --red:#d64545; --amber:#caa106; --txt:#1a2030; --mute:#5b6472; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:system-ui,'Segoe UI',Roboto,sans-serif; color:var(--txt);
+         cursor:default; -webkit-user-select:none; user-select:none; min-height:100vh;
+         background:radial-gradient(1200px 520px at 50% -8%, #e7ecfb 0%, #eef1f9 42%, #f4f6fb 100%); }
+  /* keep the text cursor + selection inside editable fields only */
+  input, textarea, select { cursor:text; -webkit-user-select:text; user-select:text; }
+
+  /* global ambient gradient blobs behind everything (Liquid Glass backdrop) */
+  .app-bg{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  .app-bg i{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.24;
+             animation:floatBlob 30s ease-in-out infinite; }
+  .app-bg i:nth-child(1){ width:360px;height:360px; left:-80px; top:-60px;
+        background:radial-gradient(circle,#6f7bff,#0c0459); }
+  .app-bg i:nth-child(2){ width:320px;height:320px; right:-90px; top:80px;
+        background:radial-gradient(circle,#36b8ff,#0067c0); animation-delay:-6s; }
+  .app-bg i:nth-child(3){ width:300px;height:300px; left:35%; bottom:-110px;
+        background:radial-gradient(circle,#9ab4ff,#1a1080); animation-delay:-11s; }
+
+  header { position:sticky; top:0; z-index:20; display:flex; justify-content:space-between;
+           align-items:center; padding:11px 16px; color:var(--navy);
+           background:rgba(255,255,255,.6); -webkit-backdrop-filter:blur(22px) saturate(180%);
+           backdrop-filter:blur(22px) saturate(180%); border-bottom:1px solid rgba(255,255,255,.6);
+           box-shadow:0 4px 22px rgba(12,4,89,.06); }
+  header small { font-weight:500; color:var(--mute); }
+  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand .logo{ width:34px; height:34px; border-radius:10px; flex:0 0 auto; color:#fff;
+        background:linear-gradient(135deg,var(--navy),var(--blue));
+        display:flex; align-items:center; justify-content:center; font-weight:800; font-size:19px;
+        box-shadow:0 6px 16px rgba(12,4,89,.32), inset 0 1px 0 rgba(255,255,255,.4); }
+  .brand .bt{ display:flex; flex-direction:column; line-height:1.12; }
+  .brand .bt .nm{ font-weight:800; font-size:15.5px; color:var(--navy); }
+  .brand .bt .nm sup{ font-size:9px; font-weight:800; }
+  .brand .bt .by{ font-size:10px; font-weight:600; color:var(--mute); letter-spacing:.2px; }
+
+  main { padding:16px; max-width:680px; margin:0 auto; }
+  .card { position:relative; border-radius:20px; padding:16px; margin-bottom:13px;
+          background:rgba(255,255,255,.55); -webkit-backdrop-filter:blur(24px) saturate(180%);
+          backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.65);
+          box-shadow:0 8px 28px rgba(12,4,89,.1), inset 0 1px 0 rgba(255,255,255,.7);
+          animation:dashIn .45s cubic-bezier(.2,.8,.2,1) both; }
+  .clickable { cursor:pointer; transition:transform .18s, box-shadow .18s; }
+  .clickable:hover{ transform:translateY(-2px);
+          box-shadow:0 14px 34px rgba(12,4,89,.16), inset 0 1px 0 rgba(255,255,255,.8); }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .key { font-weight:700; font-size:16px; word-break:break-all; color:var(--navy); }
+  .badge { padding:4px 11px; border-radius:999px; color:#fff; font-size:11px; font-weight:700;
+           text-transform:uppercase; letter-spacing:.4px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+  .approved{background:linear-gradient(135deg,#28c878,#119d5a)} .killed{background:linear-gradient(135deg,#ff6b6b,#d64545)}
+  .pending{background:linear-gradient(135deg,#e9c14a,#caa106)} .expired{background:linear-gradient(135deg,#f0a25a,#e07b39)}
+  .notice{ background:rgba(202,161,6,.12); color:#8a6d00; border:1px solid rgba(202,161,6,.4);
+           border-radius:12px; padding:9px 12px; margin-top:10px; font-size:13px; }
+  .live { color:var(--green); font-weight:700; }
+  .idle { color:#8a93a3; }
+  .meta { color:var(--mute); font-size:12px; margin-top:6px; }
+  .keychip { font-family:ui-monospace,Consolas,monospace; background:rgba(12,4,89,.07); color:var(--navy);
+             padding:4px 10px; border-radius:8px; font-weight:600; font-size:13px; letter-spacing:.3px;
+             border:1px solid rgba(12,4,89,.06); }
+  .copybtn { background:linear-gradient(135deg,var(--blue),var(--navy)); color:#fff; border:0;
+             border-radius:9px; padding:6px 11px; font-size:12px; font-weight:700; cursor:pointer; flex:0 0 auto;
+             box-shadow:0 4px 12px rgba(12,4,89,.2); transition:transform .15s, filter .15s; }
+  .copybtn:hover{ transform:translateY(-1px); filter:brightness(1.07); }
+  .btns { display:flex; gap:8px; margin-top:12px; }
+  button { flex:1; border:0; border-radius:13px; padding:12px; font-size:14px; font-weight:700; color:#fff;
+           cursor:pointer; transition:transform .15s, filter .15s, box-shadow .15s; }
+  button:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+  .b-approve{background:linear-gradient(135deg,#28c878,#119d5a)} .b-kill{background:linear-gradient(135deg,#ff6b6b,#d64545)}
+  .b-pending{background:linear-gradient(135deg,#8b93a3,#6b7280)}
+  button.active{ outline:3px solid rgba(255,255,255,.9); outline-offset:-3px; }
+  input, textarea, select { width:100%; padding:12px; border:1px solid rgba(12,4,89,.12);
+           border-radius:13px; font-size:15px; margin-bottom:9px; color:var(--txt);
+           background:rgba(255,255,255,.7); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+           outline:none; transition:border-color .15s, box-shadow .15s; }
+  input:focus, textarea:focus, select:focus{ border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,103,192,.14); }
+  .addbtn{ background:linear-gradient(135deg,var(--blue),var(--navy)); box-shadow:0 6px 18px rgba(12,4,89,.22); }
+  .back{ background:linear-gradient(135deg,#8b93a3,#6b7280); flex:0 0 auto; padding:9px 16px; border-radius:12px; }
+  .logout{ background:rgba(12,4,89,.08); color:var(--navy); flex:0 0 auto; padding:8px 13px; font-size:13px; border-radius:11px; }
+  .logout:hover{ background:rgba(12,4,89,.14); filter:none; }
+  .menu{ position:relative; cursor:pointer; user-select:none; }
+  .dropdown{ display:none; position:absolute; right:0; top:calc(100% + 12px);
+             background:rgba(255,255,255,.8); -webkit-backdrop-filter:blur(26px) saturate(180%);
+             backdrop-filter:blur(26px) saturate(180%); color:var(--txt); border-radius:16px; padding:14px; width:250px;
+             box-shadow:0 14px 40px rgba(12,4,89,.25); border:1px solid rgba(255,255,255,.7);
+             z-index:30; text-align:left; font-weight:400; }
+  .dropdown input{ font-size:14px; }
+  .menu.open .dropdown{ display:block; animation:dashIn .25s ease both; }
+
+  /* ---- login ---- */
+  #login{ max-width:380px; margin:7vh auto 0; text-align:center; padding:26px 24px 20px; }
+  #login .logo-xl{ width:66px; height:66px; border-radius:19px; margin:0 auto 14px; color:#fff;
+        background:linear-gradient(135deg,var(--navy),var(--blue));
+        display:flex; align-items:center; justify-content:center; font-weight:800; font-size:36px;
+        box-shadow:0 14px 34px rgba(12,4,89,.34), inset 0 1px 0 rgba(255,255,255,.45);
+        animation:floatLogo 5s ease-in-out infinite; }
+  #login .title{ font-size:22px; font-weight:800; color:var(--navy); }
+  #login .title sup{ font-size:11px; font-weight:800; }
+  #login .tagline{ color:var(--mute); font-size:13px; margin:7px 4px 18px; line-height:1.55; }
+  #login input{ text-align:left; }
+  .pwwrap{ position:relative; margin-bottom:9px; }
+  .pwwrap > input{ margin-bottom:0; padding-right:66px; }
+  input::-ms-reveal, input::-ms-clear{ display:none; }  /* hide browser's native eye so our toggle is the only one */
+  .pweye{ position:absolute; right:7px; top:50%; transform:translateY(-50%); z-index:3; background:transparent;
+        border:0; cursor:pointer; padding:6px 9px; color:var(--blue); font-size:12px; font-weight:700; border-radius:8px; }
+  .pweye:hover{ background:rgba(0,103,192,.1); }
+  input:-webkit-autofill{ -webkit-text-fill-color:var(--txt); transition:background-color 9999s ease-out 0s; }
+  #login .by{ margin-top:18px; padding-top:14px; border-top:1px solid rgba(12,4,89,.08);
+        color:var(--mute); font-size:12px; font-weight:600; letter-spacing:.2px; }
+  #login .by b{ color:var(--navy); }
+  @keyframes floatLogo{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+
+  .hint { color:var(--mute); font-size:12px; margin-top:6px; }
+  .empty { color:#8a93a3; text-align:center; padding:34px; }
+  .logs { margin-top:12px; max-height:46vh; overflow:auto; background:rgba(15,17,23,.92);
+          border-radius:14px; padding:12px; font-family:ui-monospace,Consolas,monospace; font-size:12px;
+          line-height:1.55; border:1px solid rgba(255,255,255,.08); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }
+  .logs .ln { white-space:pre-wrap; word-break:break-word; }
+  .logs .info { color:#9fb4c7; } .logs .error { color:#ff7b7b; }
+  .logs .t { color:#5b6b7a; }
+  .barwrap{ background:rgba(12,4,89,.08); border-radius:8px; height:8px; overflow:hidden; margin-top:8px; }
+  .bar{ background:linear-gradient(90deg,#28d17c,#119d5a); height:100%; }
+
+  /* ---- iOS 26 scrollbars (whole app) ---- */
+  html{ scrollbar-width:thin; scrollbar-color:rgba(12,4,89,.28) transparent; }
+  *::-webkit-scrollbar{ width:10px; height:10px; }
+  *::-webkit-scrollbar-track{ background:transparent; }
+  *::-webkit-scrollbar-thumb{ background:rgba(12,4,89,.24); border-radius:999px;
+        border:2px solid transparent; background-clip:content-box; }
+  *::-webkit-scrollbar-thumb:hover{ background:rgba(12,4,89,.42); background-clip:content-box; }
+  .logs{ scrollbar-color:rgba(255,255,255,.3) transparent; }
+  .logs::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.24); background-clip:content-box; }
+  .logs::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.42); background-clip:content-box; }
+
+  /* ---- iOS 26 select (glass + custom chevron) ---- */
+  select{ -webkit-appearance:none; -moz-appearance:none; appearance:none; cursor:pointer;
+        background:rgba(255,255,255,.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%230c0459' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center;
+        background-size:15px; padding-right:40px; }
+
+  /* ---- full-width layout + right glass sidebar nav ---- */
+  main{ padding:18px 22px 40px; max-width:none; margin:0; }
+  .topbar{ position:sticky; top:0; z-index:30; }
+  header{ position:static; }
+  .page{ animation:dashIn .42s cubic-bezier(.2,.8,.2,1) both; }
+  .addwrap{ margin-top:12px; }
+  .addwrap>summary{ list-style:none; cursor:pointer; font-weight:700; color:var(--blue);
+        font-size:13.5px; display:flex; align-items:center; gap:8px; padding:4px 2px; }
+  .addwrap>summary::-webkit-details-marker{ display:none; }
+  .addwrap .chev{ display:inline-block; transition:transform .25s; font-size:11px; }
+  .addwrap[open] .chev{ transform:rotate(90deg); }
+
+  .shell{ display:flex; align-items:flex-start; gap:20px; }
+  .content{ flex:1 1 auto; min-width:0; }
+  #detailView{ max-width:920px; }
+  /* client list fills the width as a responsive grid */
+  #list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; align-items:start; }
+  /* the list re-renders on every live snapshot — don't re-animate it each time
+     (that made the whole page slide/"pull" repeatedly while scrolling) */
+  #list .card{ margin-bottom:0; animation:none; }
+  #page-clients>.card{ max-width:560px; }
+  #page-updates .card, #page-team .card, #page-errors .card, #page-audit .card{ max-width:820px; }
+
+  /* client cards: clear card look + tidy internal rhythm */
+  #list .card{ padding:16px 17px; display:flex; flex-direction:column; gap:9px; }
+  #list .card .row{ gap:10px; }
+  #list .card .meta{ margin-top:0; }
+
+  /* consistent breathing room inside form cards (Updates/Team) */
+  #updateCard .meta, #teamCard .meta{ margin-top:2px; margin-bottom:2px; }
+  #updateCard .addbtn, #teamCard .addbtn{ margin-top:6px; }
+  #updateCard .hint, #teamCard .hint{ margin-top:10px; }
+
+  /* iOS-26 file upload control */
+  input[type=file]{ width:100%; padding:10px 12px; cursor:pointer; line-height:1.6; }
+  input[type=file]::file-selector-button{ font-family:inherit; font-weight:700; font-size:13px;
+        color:#fff; cursor:pointer; border:0; border-radius:11px; padding:9px 16px; margin-right:13px;
+        background:linear-gradient(135deg,var(--blue),var(--navy));
+        box-shadow:0 4px 12px rgba(12,4,89,.22); transition:filter .15s, transform .15s; }
+  input[type=file]::-webkit-file-upload-button{ font-family:inherit; font-weight:700; font-size:13px;
+        color:#fff; cursor:pointer; border:0; border-radius:11px; padding:9px 16px; margin-right:13px;
+        background:linear-gradient(135deg,var(--blue),var(--navy));
+        box-shadow:0 4px 12px rgba(12,4,89,.22); transition:filter .15s, transform .15s; }
+  input[type=file]::file-selector-button:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+  input[type=file]::-webkit-file-upload-button:hover{ filter:brightness(1.08); }
+
+  /* right sidebar */
+  #sidebar{ flex:0 0 230px; position:sticky; top:calc(var(--hh,60px) + 16px); align-self:flex-start;
+        display:flex; flex-direction:column; gap:5px; padding:14px; border-radius:20px;
+        background:rgba(255,255,255,.55); -webkit-backdrop-filter:blur(24px) saturate(180%);
+        backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.65);
+        box-shadow:0 8px 28px rgba(12,4,89,.1), inset 0 1px 0 rgba(255,255,255,.7);
+        max-height:calc(100vh - var(--hh,60px) - 32px); overflow:auto;
+        animation:dashIn .5s cubic-bezier(.2,.8,.2,1) both; }
+  #sidebar .sb-label{ font-size:10.5px; font-weight:800; letter-spacing:1px; color:var(--mute);
+        text-transform:uppercase; padding:4px 10px 8px; }
+  #sidebar .navitem{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+        padding:11px 13px; border-radius:14px; background:transparent; color:var(--mute);
+        font-weight:700; font-size:14px; cursor:pointer; border:0;
+        transition:background .22s, color .2s, box-shadow .2s, transform .15s; }
+  #sidebar .navitem svg{ width:19px; height:19px; flex:0 0 auto; }
+  #sidebar .navitem:hover{ background:rgba(12,4,89,.06); color:var(--navy); transform:none; filter:none; }
+  #sidebar .navitem.active{ background:linear-gradient(135deg,var(--blue),var(--navy)); color:#fff;
+        box-shadow:0 6px 16px rgba(12,4,89,.3); }
+
+  @media(max-width:820px){
+    main{ padding:14px 14px 32px; }
+    .shell{ flex-direction:column; gap:12px; }
+    #sidebar{ order:-1; flex:none; width:100%; flex-direction:row; gap:4px; overflow-x:auto;
+        top:var(--hh,60px); padding:8px; border-radius:16px; max-height:none; scrollbar-width:none; }
+    #sidebar::-webkit-scrollbar{ display:none; }
+    #sidebar .sb-label{ display:none; }
+    #sidebar .navitem{ flex-direction:column; gap:4px; min-width:66px; padding:8px 10px;
+        font-size:11px; white-space:nowrap; text-align:center; }
+    #sidebar .navitem svg{ width:18px; height:18px; }
+    #detailView, #page-clients>.card,
+    #page-updates .card, #page-team .card, #page-errors .card, #page-audit .card{ max-width:none; }
+  }
+
+  /* ============ Insights dashboard — iOS 26 "Liquid Glass" ============ */
+  @keyframes dashIn { from{ opacity:0; transform:translateY(6px); }
+                      to{ opacity:1; transform:none; } }
+  @keyframes floatBlob { 0%{ transform:translate(0,0) scale(1); }
+                         50%{ transform:translate(10px,-12px) scale(1.05); }
+                         100%{ transform:translate(0,0) scale(1); } }
+  @keyframes drawDonut { from{ stroke-dashoffset:var(--circ); } }
+  @keyframes growBar { from{ transform:scaleY(0); } }
+  @keyframes shimmer { 0%{ background-position:-200% 0; } 100%{ background-position:200% 0; } }
+
+  .dash{ position:relative; }
+  /* ambient gradient blobs behind the glass */
+  .dash-bg{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  .dash-bg i{ position:absolute; border-radius:50%; filter:blur(60px); opacity:.5;
+              animation:floatBlob 16s ease-in-out infinite; }
+  .dash-bg i:nth-child(1){ width:320px; height:320px; left:-60px; top:-40px;
+        background:radial-gradient(circle,#6f7bff,#0c0459); }
+  .dash-bg i:nth-child(2){ width:300px; height:300px; right:-70px; top:120px;
+        background:radial-gradient(circle,#19c37d,#0a6); animation-delay:-5s; }
+  .dash-bg i:nth-child(3){ width:280px; height:280px; left:30%; bottom:-80px;
+        background:radial-gradient(circle,#ff7eb3,#d64545); animation-delay:-9s; }
+
+  .glass{ position:relative; border-radius:22px; padding:18px;
+          background:rgba(255,255,255,.55);
+          -webkit-backdrop-filter:blur(26px) saturate(180%);
+          backdrop-filter:blur(26px) saturate(180%);
+          border:1px solid rgba(255,255,255,.65);
+          box-shadow:0 8px 30px rgba(12,4,89,.12), inset 0 1px 0 rgba(255,255,255,.7);
+          margin-bottom:14px; animation:dashIn .5s cubic-bezier(.2,.8,.2,1) both; }
+  .glass.d2{ animation-delay:.05s } .glass.d3{ animation-delay:.1s } .glass.d4{ animation-delay:.15s }
+  .glass-title{ font-weight:700; font-size:15px; letter-spacing:.2px; color:var(--navy);
+                display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .glass-title .sub{ font-weight:500; font-size:12px; color:#6b7280; margin-left:auto; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  @media(max-width:560px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
+  .kpi{ border-radius:16px; padding:12px; background:rgba(255,255,255,.45);
+        border:1px solid rgba(255,255,255,.6); box-shadow:inset 0 1px 0 rgba(255,255,255,.6); }
+  .kpi .n{ font-size:26px; font-weight:800; line-height:1; color:var(--navy);
+           font-variant-numeric:tabular-nums; }
+  .kpi .l{ font-size:11px; color:#5b6472; margin-top:6px; text-transform:uppercase; letter-spacing:.4px; }
+  .kpi .n.green{ color:var(--green) } .kpi .n.red{ color:var(--red) } .kpi .n.amber{ color:#b8860b }
+
+  .donutwrap{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .donut{ width:132px; height:132px; flex:0 0 auto; }
+  .donut circle{ fill:none; stroke-width:14; stroke-linecap:round; transform:rotate(-90deg);
+                 transform-origin:50% 50%; }
+  .donut .ring{ stroke:rgba(12,4,89,.08); }
+  .donut .seg{ animation:drawDonut 1.1s cubic-bezier(.2,.8,.2,1) both; }
+  .donut-center{ font-size:24px; font-weight:800; fill:var(--navy); }
+  .donut-sub{ font-size:9px; fill:#6b7280; letter-spacing:1px; }
+  .legend{ font-size:13px; color:#33384a; } .legend div{ display:flex; align-items:center; gap:8px; margin:5px 0; }
+  .dot{ width:11px; height:11px; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.5); }
+
+  .trend{ display:flex; align-items:flex-end; gap:6px; height:120px; padding-top:6px; }
+  .trend .col{ flex:1; display:flex; flex-direction:column; justify-content:flex-end;
+               gap:2px; min-width:6px; cursor:default; }
+  .trend .col .g,.trend .col .r{ border-radius:4px 4px 2px 2px; transform-origin:bottom;
+               animation:growBar .7s cubic-bezier(.2,.8,.2,1) both; }
+  .trend .col .g{ background:linear-gradient(180deg,#28d17c,#119d5a); }
+  .trend .col .r{ background:linear-gradient(180deg,#ff8a8a,#d64545); border-radius:2px; }
+  .trend .col .cap{ font-size:9px; color:#8a93a3; text-align:center; margin-top:4px; white-space:nowrap; }
+
+  .stepbar{ margin:9px 0; } .stepbar .row2{ display:flex; justify-content:space-between; font-size:12.5px;
+            color:#33384a; margin-bottom:4px; } .stepbar .row2 b{ color:var(--navy); }
+  .stepbar .track{ height:9px; border-radius:6px; background:rgba(12,4,89,.07); overflow:hidden; }
+  .stepbar .fill{ height:100%; border-radius:6px; transform-origin:left;
+            background:linear-gradient(90deg,#ff9a6b,#d64545);
+            animation:growBar .8s cubic-bezier(.2,.8,.2,1) both; }
+
+  details.run{ border-radius:16px; background:rgba(255,255,255,.45);
+            border:1px solid rgba(255,255,255,.6); margin-bottom:9px; overflow:hidden; }
+  details.run>summary{ list-style:none; cursor:pointer; padding:12px 14px; display:flex;
+            align-items:center; gap:10px; }
+  details.run>summary::-webkit-details-marker{ display:none; }
+  details.run .chev{ transition:transform .25s; color:#8a93a3; }
+  details.run[open] .chev{ transform:rotate(90deg); }
+  .runpill{ padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; color:#fff; }
+  .runpill.ok{ background:var(--green) } .runpill.bad{ background:var(--red) }
+  .runpill.part{ background:#caa106 } .runpill.run{ background:#3b82f6 } .runpill.stop{ background:#777 }
+  .runmeta{ font-size:12px; color:#5b6472; } .runmeta b{ color:var(--navy); }
+  .runrate{ margin-left:auto; font-weight:800; color:var(--navy); font-variant-numeric:tabular-nums; }
+  .failrow{ padding:9px 14px; border-top:1px solid rgba(12,4,89,.06); font-size:12.5px;
+            display:flex; gap:10px; align-items:flex-start; }
+  .failrow .stepchip{ flex:0 0 auto; padding:2px 9px; border-radius:7px; font-size:11px; font-weight:700;
+            background:rgba(214,69,69,.12); color:#b3322f; white-space:nowrap; }
+  .failrow .who{ font-weight:600; color:var(--navy); }
+  .failrow .why{ color:#5b6472; }
+  .pillbtn{ background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.6));
+            color:var(--navy); border:1px solid rgba(255,255,255,.8); border-radius:12px;
+            padding:9px 16px; font-weight:700; box-shadow:0 4px 14px rgba(12,4,89,.1);
+            -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); flex:0 0 auto; }
+  .seg-emptied{ color:#6b7280; text-align:center; padding:18px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="app-bg"><i></i><i></i><i></i></div>
+<div class="topbar">
+<header>
+  <span class="brand">
+    <span class="logo">C</span>
+    <span class="bt">
+      <span class="nm">ChargePilot<sup>™</sup> &nbsp;<span style="font-weight:600;color:var(--mute)">Admin</span></span>
+      <span class="by">A solution by Resolute MSO</span>
+    </span>
+  </span>
+  <span style="display:flex;align-items:center;gap:10px">
+    <span class="menu" id="userMenu" onclick="toggleMenu(event)">
+      <small id="who"></small><small id="caret" style="display:none">&nbsp;▾</small>
+      <div class="dropdown">
+        <div style="font-weight:600;margin-bottom:8px">Change password</div>
+        <input id="curPw" type="password" placeholder="current password" autocomplete="current-password">
+        <input id="newPw" type="password" placeholder="new password (min 6)" autocomplete="new-password">
+        <button class="addbtn" onclick="changePw()">Update password</button>
+        <div id="pwMsg" class="hint"></div>
+      </div>
+    </span>
+    <small id="signkey" style="opacity:.85;font-size:11px"></small>
+    <button id="signbtn" class="logout" onclick="manageSignKey()" style="display:none">Signing key</button>
+    <button id="logout" class="logout" onclick="signOutNow()" style="display:none">Sign out</button>
+  </span>
+</header>
+</div>
+<main>
+  <div id="login" class="card">
+    <div class="logo-xl">C</div>
+    <div class="title">ChargePilot<sup>™</sup> Admin</div>
+    <div class="tagline">Console for ChargePilot — the automated OfficeAlly claim-entry tool.
+      Manage client licenses &amp; per-PC approvals, publish app updates, and review each
+      client's run insights.</div>
+    <form onsubmit="event.preventDefault(); signIn();">
+      <input id="email" name="email" type="email" placeholder="Enter your email" autocomplete="username">
+      <div class="pwwrap">
+        <input id="pass" name="password" type="password" placeholder="password" autocomplete="current-password">
+        <button type="button" class="pweye" onclick="togglePw(this)">Show</button>
+      </div>
+      <button type="submit" class="addbtn">Sign in</button>
+    </form>
+    <div style="margin-top:12px">
+      <a onclick="resetPw()" style="color:var(--blue);font-size:13px;cursor:pointer;text-decoration:underline">Forgot password?</a>
+    </div>
+    <div id="loginErr" class="hint"></div>
+    <div class="by">A solution by <b>Resolute MSO</b></div>
+  </div>
+
+  <div id="app" style="display:none">
+   <div class="shell">
+    <aside id="sidebar">
+      <div class="sb-label">Menu</div>
+      <button class="navitem active" data-page="clients" onclick="showPage('clients')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Clients</span></button>
+      <button class="navitem" data-page="updates" onclick="showPage('updates')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Updates</span></button>
+      <button class="navitem" data-page="team" onclick="showPage('team')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg><span>Team</span></button>
+      <button class="navitem" data-page="errors" onclick="showPage('errors')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Errors</span></button>
+      <button class="navitem" data-page="audit" onclick="showPage('audit')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Audit</span></button>
+      <button class="navitem" data-page="portal" onclick="showPage('portal')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Portal</span></button>
+    </aside>
+    <div class="content">
+     <div id="listView">
+     <!-- ========== PAGE: Clients ========== -->
+     <div class="page" id="page-clients">
+      <div class="card">
+        <input id="filter" placeholder="🔎 Filter clients by key or name" oninput="render()">
+        <details class="addwrap">
+          <summary><span class="chev">▶</span> ＋ Add a new client</summary>
+          <div class="row" style="gap:8px;margin-top:10px">
+            <input id="newKey" placeholder="new license key" style="margin:0">
+            <button class="addbtn" style="flex:0 0 auto;padding:12px 16px" onclick="genKey()">⚙ Generate</button>
+          </div>
+          <input id="newName" placeholder="client name (optional)">
+          <button class="addbtn" onclick="addClient()">Add client</button>
+        </details>
+      </div>
+      <div id="list"></div>
+     </div>
+
+     <!-- ========== PAGE: Updates ========== -->
+     <div class="page" id="page-updates" style="display:none">
+      <div class="card" id="updateCard">
+        <div class="key" style="font-size:15px">Publish app update</div>
+        <div class="meta" id="pubCurrent">current published: —</div>
+        <input id="pubVer" placeholder="new version, e.g. 4.9.0">
+        <input id="pubMin" placeholder="minimum supported version (older builds are blocked), e.g. 4.8.0">
+        <input id="pubUrl" placeholder="installer URL"
+               value="https://raw.githubusercontent.com/ahmadaimee/chargepilot/main/ChargePilot-Setup.exe">
+        <textarea id="pubNotes" placeholder="What's new (one bullet per line)"
+                  style="min-height:82px"></textarea>
+        <div class="meta">Installer file (computes &amp; signs SHA-256 in this browser):</div>
+        <input id="pubFile" type="file" accept=".exe">
+        <button class="addbtn" onclick="publishUpdate()">Sign &amp; publish update</button>
+        <div class="hint">After publishing, upload the .exe by running <b>firebase deploy</b> from the project folder (the file must live in <b>admin/download/</b>). Clients then see the update on their next Run.</div>
+        <div id="pubMsg" class="hint"></div>
+      </div>
+     </div>
+
+     <!-- ========== PAGE: Team ========== -->
+     <div class="page" id="page-team" style="display:none">
+      <div class="card" id="teamCard">
+        <div class="key" style="font-size:15px">Team / user access</div>
+        <div class="meta" style="margin-bottom:8px">Add an admin login. An
+          <b>Approver</b> can manage clients &amp; per-PC approvals only — they
+          cannot publish app updates. An <b>Owner</b> can do everything.</div>
+        <input id="tuEmail" type="email" placeholder="new user email" autocomplete="off">
+        <input id="tuPass" type="password" placeholder="initial password (min 6)" autocomplete="new-password">
+        <select id="tuRole">
+          <option value="approver">Approver — client/PC approval only</option>
+          <option value="owner">Owner — full access</option>
+        </select>
+        <button class="addbtn" onclick="addUser()">Add user</button>
+        <div class="hint">Note: an Approver still needs the Signing key (to sign
+          per-PC approvals). Update publishing is blocked for them by the database
+          rules, not just hidden here.</div>
+        <div id="tuMsg" class="hint"></div>
+        <div id="teamList"></div>
+      </div>
+     </div>
+
+     <!-- ========== PAGE: Errors ========== -->
+     <div class="page" id="page-errors" style="display:none">
+      <div class="card" id="errorCard">
+        <div class="key" style="font-size:15px">Errors — all clients</div>
+        <div class="meta" style="margin-bottom:4px">Errors reported by client apps
+          (most recent first) — what failed, and on which client / PC / version.
+          Visible to Owners only.</div>
+        <div class="logs" id="errorList"></div>
+      </div>
+     </div>
+
+     <!-- ========== PAGE: Audit ========== -->
+     <div class="page" id="page-audit" style="display:none">
+      <div class="card" id="auditCard">
+        <div class="key" style="font-size:15px">Audit log</div>
+        <div class="meta" style="margin-bottom:4px">Every admin action across all
+          users (most recent first). Visible to Owners only.</div>
+        <div class="logs" id="auditList"></div>
+      </div>
+     </div>
+
+     <!-- ========== PAGE: Client Portal accounts ========== -->
+     <div class="page" id="page-portal" style="display:none">
+      <div class="card" id="portalCard">
+        <div class="key" style="font-size:15px">Client portal accounts</div>
+        <div class="meta">Create a read-only account a client uses to sign in at the
+          <b>client portal</b> and view ONLY their own insights. Link one or more of
+          their licenses to the account below. Nothing else is exposed.</div>
+        <div class="meta">Client portal link: <b><span id="portalUrl">—</span></b></div>
+        <input id="cpEmail" type="email" placeholder="client email" autocomplete="off">
+        <input id="cpName" placeholder="client / company name (optional)">
+        <input id="cpPass" type="password" placeholder="initial password (min 6)" autocomplete="new-password">
+        <button class="addbtn" onclick="createPortalClient()">Create portal account</button>
+        <div id="cpMsg" class="hint"></div>
+        <div id="portalList"></div>
+      </div>
+     </div>
+     </div>
+     <div id="detailView" style="display:none"></div>
+    </div>
+   </div>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD2uKP4q8-NI_c3LAdMoOMduQfUA6Za_4g",
+  authDomain: "officeally-license.firebaseapp.com",
+  databaseURL: "https://officeally-license-default-rtdb.firebaseio.com",
+  projectId: "officeally-license",
+  messagingSenderId: "418613096787",
+  appId: "1:418613096787:web:59256e8ab188c32095f1a6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+let DATA = {};      // /licenses snapshot
+let selected = null; // selected client key (detail view)
+let CURRENT_ROLE = null;  // 'owner' | 'approver' | null — controls Update access
+let ROLES = {};           // /admin_roles snapshot
+
+// ---- segment navigation: each section is its own page (left sidebar) ----
+// Keep the sticky sidebar pinned just below the glass header (its height varies
+// with the signed-in email/role line), exposed to CSS as --hh.
+function _setHH(){
+  const h = document.querySelector('header');
+  if (h) document.documentElement.style.setProperty('--hh', h.offsetHeight + 'px');
+}
+window.addEventListener('resize', _setHH);
+let currentPage = 'clients';
+const PAGES = ['clients','updates','team','errors','audit','portal'];
+function _pageAllowed(p){ return p === 'clients' || CURRENT_ROLE === 'owner'; }
+function _showCurrentPage(){
+  PAGES.forEach(p => { const el = document.getElementById('page-'+p);
+    if(el) el.style.display = (p === currentPage) ? 'block' : 'none'; });
+  document.querySelectorAll('#sidebar .navitem').forEach(t =>
+    t.classList.toggle('active', t.dataset.page === currentPage));
+}
+function showPage(p){
+  if(!_pageAllowed(p)) p = 'clients';
+  currentPage = p; _dashOff(); dashFor = null; selected = null;
+  render();
+  try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
+}
+
+const SESSION_MS = 24*60*60*1000;  // auto sign-out after 24 hours
+function signIn(){
+  auth.signInWithEmailAndPassword(email.value.trim(), pass.value)
+      .then(() => localStorage.setItem('oa_login_at', Date.now()))
+      .catch(e => loginErr.textContent = e.message);
+}
+function signOutNow(){ selected = null; localStorage.removeItem('oa_login_at'); auth.signOut(); }
+function togglePw(btn){ const p=document.getElementById('pass'); const show=p.type==='password';
+  p.type = show?'text':'password'; btn.textContent = show?'Hide':'Show'; }
+function _sessionExpired(){
+  const t = +(localStorage.getItem('oa_login_at') || 0);
+  return t && (Date.now() - t > SESSION_MS);
+}
+setInterval(() => { if (auth.currentUser && _sessionExpired()) signOutNow(); }, 60*1000);
+
+function resetPw(){
+  const e = email.value.trim();
+  if(!e){ loginErr.style.color='#d64545'; loginErr.textContent='Enter your email above first, then tap Forgot password.'; return; }
+  auth.sendPasswordResetEmail(e)
+    .then(()=>{ loginErr.style.color='#1f9d55'; loginErr.textContent='Password reset link sent to '+e; })
+    .catch(err=>{ loginErr.style.color='#d64545'; loginErr.textContent=err.message; });
+}
+
+function changePw(){
+  const u = auth.currentUser; if(!u) return;
+  const np = newPw.value;
+  if(np.length<6){ pwMsg.style.color='#d64545'; pwMsg.textContent='New password must be at least 6 characters.'; return; }
+  const cred = firebase.auth.EmailAuthProvider.credential(u.email, curPw.value);
+  u.reauthenticateWithCredential(cred)
+    .then(()=> u.updatePassword(np))
+    .then(()=>{ pwMsg.style.color='#1f9d55'; pwMsg.textContent='Password updated.'; curPw.value=newPw.value=''; })
+    .catch(e=>{
+      pwMsg.style.color='#d64545';
+      pwMsg.textContent = (e.code==='auth/invalid-credential' || e.code==='auth/wrong-password')
+        ? 'Current password is incorrect. If you forgot it, sign out and use “Forgot password?”.'
+        : (e.code==='auth/weak-password' ? 'New password is too weak (min 6 characters).'
+        : e.message);
+    });
+}
+auth.onAuthStateChanged(u => {
+  if (u) {
+    if (_sessionExpired()) { signOutNow(); return; }      // >24h old -> sign out
+    if (!localStorage.getItem('oa_login_at'))             // pre-existing session
+      localStorage.setItem('oa_login_at', Date.now());
+  }
+  login.style.display  = u ? 'none' : 'block';
+  app.style.display    = 'none';   // revealed only after an ADMIN role is confirmed
+  who.textContent      = u ? (u.email || '') : '';
+  logout.style.display = u ? 'inline-block' : 'none';
+  caret.style.display  = u ? 'inline' : 'none';
+  if (u) {
+    currentPage = 'clients';
+    _setHH();
+    onSignedIn(u);
+  } else {
+    CURRENT_ROLE = null; ROLES = {}; currentPage = 'clients';
+    signbtn.style.display = 'none';
+    _dashOff(); dashFor = null; RUNS = {}; RUNS_LOADED = {};
+    db.ref('licenses').off(); db.ref('app_update').off();
+    db.ref('admin_roles').off(); db.ref('audit_log').off(); db.ref('error_feed').off();
+    db.ref('portal_users').off(); PORTAL = {};
+  }
+});
+
+async function onSignedIn(u){
+  _restoreSignKey();
+  // Determine this admin's role; bootstrap the very first owner if none exist yet.
+  try{
+    const snap = await db.ref('admin_roles').once('value');
+    if(Object.keys(snap.val() || {}).length === 0)
+      await db.ref('admin_roles/'+u.uid).set({ email:u.email||'', role:'owner' });
+  }catch(e){ /* rules may block reads until bootstrapped — ignore */ }
+  db.ref('admin_roles').on('value', s => {
+    ROLES = s.val() || {};
+    CURRENT_ROLE = (ROLES[u.uid]||{}).role || null;
+    // Not an admin (e.g. a client portal account)? This is the ADMIN console — send
+    // them to the read-only client portal instead. They never see any admin UI.
+    if (!CURRENT_ROLE) { location.replace('https://chargepilot.resolutemso.com/portal'); return; }
+    document.getElementById('app').style.display = 'block';
+    who.textContent = (u.email||'') + (CURRENT_ROLE ? (' · '+CURRENT_ROLE) : '');
+    applyRoleUI();
+  });
+  db.ref('licenses').on('value', s => { DATA = s.val() || {}; render(); if(CURRENT_ROLE==='owner') renderPortal(); });
+  db.ref('app_update').on('value', s => {
+    const v = s.val(); const el = document.getElementById('pubCurrent');
+    if (el) el.textContent = 'current published: ' + ((v && v.version) ? ('v' + v.version) : 'none')
+      + ((v && v.min_version) ? (' · min supported: v' + v.min_version) : '');
+  });
+}
+
+// Owner-only segments (Updates / Team / Errors / Audit) get their own top-nav
+// tabs, shown only to Owners. Approvers see just the Clients tab. The signing key
+// is available to ANY admin (an approver needs it to sign per-PC approvals).
+function applyRoleUI(){
+  const owner = CURRENT_ROLE === 'owner';
+  ['updates','team','errors','audit','portal'].forEach(p => {
+    const t = document.querySelector('#sidebar .navitem[data-page="'+p+'"]');
+    if (t) t.style.display = owner ? 'flex' : 'none';
+  });
+  if (typeof signbtn !== 'undefined' && signbtn)
+    signbtn.style.display = CURRENT_ROLE ? 'inline-block' : 'none';
+  renderTeam();
+  const purl = document.getElementById('portalUrl');
+  if (purl) purl.textContent = 'https://chargepilot.resolutemso.com/portal';
+  if (owner) {
+    db.ref('audit_log').limitToLast(200).on('value', s => { AUDIT = s.val() || {}; renderAudit(); });
+    db.ref('error_feed').limitToLast(100).on('value', s => { ERRORS = s.val() || {}; renderErrors(); });
+    db.ref('portal_users').on('value', s => { PORTAL = s.val() || {}; renderPortal(); });
+  } else {
+    db.ref('audit_log').off(); AUDIT = {};
+    db.ref('error_feed').off(); ERRORS = {};
+    db.ref('portal_users').off(); PORTAL = {};
+  }
+  if (!_pageAllowed(currentPage)) currentPage = 'clients';
+  if (!selected && !dashFor) render();   // refresh tab highlight + page visibility
+}
+
+// ---- error feed: errors reported by client apps (Owner-only read) ----
+let ERRORS = {};
+function renderErrors(){
+  const box = document.getElementById('errorList');
+  if(!box) return;
+  if(CURRENT_ROLE !== 'owner') return;
+  const rows = Object.values(ERRORS).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  box.innerHTML = rows.length ? rows.map(r => {
+    const when = r.ts ? new Date(r.ts*1000).toLocaleString() : '';
+    const client = (DATA[r.key] && DATA[r.key].name) ? DATA[r.key].name : (r.key||'?');
+    return `<div class="ln error"><span class="t">${when}</span>  `+
+      `<b>${String(client).replace(/</g,'&lt;')}</b> · ${String(r.name||'PC').replace(/</g,'&lt;')} · v${r.ver||'?'} — `+
+      `<b>${String(r.context||'').replace(/</g,'&lt;')}</b>: ${String(r.msg||'').replace(/</g,'&lt;')}</div>`;
+  }).join('') : '<div class="idle">No errors reported. 🎉</div>';
+}
+
+// ---- audit log: every admin action is recorded (append-only); Owner-only read ----
+let AUDIT = {};
+function logAction(action, detail){
+  const u = auth.currentUser; if(!u) return;
+  try{
+    db.ref('audit_log').push({
+      ts: firebase.database.ServerValue.TIMESTAMP,
+      uid: u.uid, email: u.email||'', role: CURRENT_ROLE||'',
+      action: action, detail: (detail==null?'':String(detail)).slice(0,300)
+    });
+  }catch(e){}
+}
+function renderAudit(){
+  const box = document.getElementById('auditList');
+  if(!box) return;
+  if(CURRENT_ROLE !== 'owner') return;
+  const rows = Object.values(AUDIT).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  box.innerHTML = rows.length ? rows.map(r =>
+    `<div class="ln info"><span class="t">${r.ts?new Date(r.ts).toLocaleString():''}</span>  `+
+    `<b>${(r.email||'?').replace(/</g,'&lt;')}</b> `+
+    `<span style="color:#9fb4c7">[${(r.role||'?')}]</span> `+
+    `${(r.action||'').replace(/</g,'&lt;')}`+
+    `${r.detail?(' — '+String(r.detail).replace(/</g,'&lt;')):''}</div>`
+  ).join('') : '<div class="idle">No actions logged yet.</div>';
+}
+
+// ---- team / user management (Owner only) ----
+async function addUser(){
+  const m = document.getElementById('tuMsg');
+  const email = (document.getElementById('tuEmail').value||'').trim();
+  const pw = document.getElementById('tuPass').value;
+  const role = document.getElementById('tuRole').value;
+  if(CURRENT_ROLE !== 'owner'){ m.style.color='#d64545'; m.textContent='Only an Owner can add users.'; return; }
+  if(!email || pw.length < 6){ m.style.color='#d64545'; m.textContent='Enter an email and a password (min 6).'; return; }
+  let sec;
+  try{
+    m.style.color='#666'; m.textContent='Creating user…';
+    // Use a SECONDARY app so creating the user doesn't sign the owner out.
+    sec = firebase.apps.find(a=>a.name==='secondary') || firebase.initializeApp(firebaseConfig,'secondary');
+    const cred = await sec.auth().createUserWithEmailAndPassword(email, pw);
+    const uid = cred.user.uid;
+    await sec.auth().signOut();
+    await db.ref('admin_roles/'+uid).set({ email:email, role:role });
+    logAction('add user', email+' as '+role);
+    m.style.color='#1f9d55'; m.textContent='User added: '+email+' ('+role+').';
+    document.getElementById('tuEmail').value=''; document.getElementById('tuPass').value='';
+  }catch(e){ m.style.color='#d64545';
+    m.textContent = (e.code==='auth/email-already-in-use')
+      ? 'That email already has an account (it may be an admin or an existing portal user). Use a different email.'
+      : 'Failed: '+e.message; }
+  finally{ if(sec){ try{ await sec.delete(); }catch(_){ } } }
+}
+function removeUser(uid){
+  if(CURRENT_ROLE !== 'owner') return;
+  if(uid === (auth.currentUser&&auth.currentUser.uid)){ alert("You can't remove your own access."); return; }
+  const owners = Object.values(ROLES).filter(r=>r&&r.role==='owner').length;
+  if((ROLES[uid]||{}).role==='owner' && owners<=1){ alert('Cannot remove the last Owner.'); return; }
+  const who2 = (ROLES[uid]||{}).email || uid;
+  if(!confirm('Remove admin access for '+who2+'?\n(They keep a Firebase login but can do nothing. To delete the login itself, use the Firebase Console.)')) return;
+  db.ref('admin_roles/'+uid).remove().then(()=>logAction('remove user', who2));
+}
+function setRole(uid, role){
+  if(CURRENT_ROLE !== 'owner') return;
+  if(uid === (auth.currentUser&&auth.currentUser.uid)){ alert("You can't change your own role."); return; }
+  const cur = (ROLES[uid]||{}).role;
+  if(cur === role) return;
+  const owners = Object.values(ROLES).filter(r=>r&&r.role==='owner').length;
+  if(cur==='owner' && role!=='owner' && owners<=1){ alert('Cannot demote the last Owner.'); return; }
+  const who2 = (ROLES[uid]||{}).email || uid;
+  db.ref('admin_roles/'+uid+'/role').set(role).then(()=>logAction('change role', who2+' -> '+role));
+}
+function resetUserPw(email){
+  if(CURRENT_ROLE !== 'owner') return;
+  if(!email){ alert('No email on file for this user.'); return; }
+  if(!confirm('Send a password-reset email to '+email+'?\nThey set their own new password from the link.')) return;
+  auth.sendPasswordResetEmail(email)
+    .then(()=>{ logAction('reset password', email); alert('Password-reset email sent to '+email+'.'); })
+    .catch(e=>alert('Failed: '+e.message));
+}
+function renderTeam(){
+  const list = document.getElementById('teamList');
+  if(!list) return;
+  if(CURRENT_ROLE !== 'owner') return;
+  const me = auth.currentUser ? auth.currentUser.uid : '';
+  const entries = Object.entries(ROLES);
+  list.innerHTML = '<div style="height:8px"></div>' + (entries.length ? entries.map(([uid,r])=>{
+    const isMe = uid===me;
+    const role = (r&&r.role)||'?';
+    const email = ((r&&r.email)||uid);
+    const toggle = role==='owner'
+      ? `<button class="copybtn" style="background:#6b7280" onclick="setRole('${uid}','approver')">Make approver</button>`
+      : `<button class="copybtn" style="background:var(--green)" onclick="setRole('${uid}','owner')">Make owner</button>`;
+    return `<div style="padding:8px 0;border-top:1px solid #eef0f5">
+      <div class="row">
+        <div><b style="font-size:13px">${String(email).replace(/</g,'&lt;')}</b>
+          <span class="keychip" style="font-size:10px;margin-left:6px">${role}</span>
+          ${isMe?'<span class="meta" style="display:inline">· you</span>':''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        ${isMe ? '<span class="hint">Your own access cannot be changed here.</span>' : `
+          ${toggle}
+          <button class="copybtn" style="background:var(--navy)" onclick="resetUserPw('${String(email).replace(/'/g,"\\\\'")}')">Reset password</button>
+          <button class="copybtn" style="background:var(--red)" onclick="removeUser('${uid}')">Remove</button>`}
+      </div>
+    </div>`;
+  }).join('') : '<div class="idle">No team members yet.</div>');
+}
+
+// ---- client portal accounts (Owner only): read-only insights access ----
+let PORTAL = {};   // /portal_users snapshot
+async function createPortalClient(){
+  const m = document.getElementById('cpMsg');
+  const email = (document.getElementById('cpEmail').value||'').trim();
+  const name  = (document.getElementById('cpName').value||'').trim();
+  const pw    = document.getElementById('cpPass').value;
+  if(CURRENT_ROLE !== 'owner'){ m.style.color='#d64545'; m.textContent='Only an Owner can create portal accounts.'; return; }
+  if(!email || pw.length < 6){ m.style.color='#d64545'; m.textContent='Enter a client email and a password (min 6).'; return; }
+  let sec;
+  try{
+    m.style.color='#666'; m.textContent='Creating portal account…';
+    sec = firebase.apps.find(a=>a.name==='secondary') || firebase.initializeApp(firebaseConfig,'secondary');
+    const cred = await sec.auth().createUserWithEmailAndPassword(email, pw);
+    const uid = cred.user.uid;
+    await sec.auth().signOut();
+    await db.ref('portal_users/'+uid).set({ email:email, name:(name||email), keys:{} });
+    logAction('create portal account', email);
+    m.style.color='#1f9d55'; m.textContent='Portal account created for '+email+'. Now link their license(s) below.';
+    document.getElementById('cpEmail').value=''; document.getElementById('cpName').value=''; document.getElementById('cpPass').value='';
+  }catch(e){ m.style.color='#d64545';
+    m.textContent = (e.code==='auth/email-already-in-use')
+      ? 'That email already has an account (it may be an admin or an existing portal user). Use a different email.'
+      : 'Failed: '+e.message; }
+  finally{ if(sec){ try{ await sec.delete(); }catch(_){ } } }
+}
+function linkLicense(uid){
+  if(CURRENT_ROLE !== 'owner') return;
+  const sel = document.getElementById('cpAdd_'+uid);
+  const key = sel && sel.value;
+  if(!key) return;
+  db.ref('portal_users/'+uid+'/keys/'+key).set(true)
+    .then(()=>logAction('portal link license', ((PORTAL[uid]||{}).email||uid)+' + '+key));
+}
+function unlinkLicense(uid, key){
+  if(CURRENT_ROLE !== 'owner') return;
+  db.ref('portal_users/'+uid+'/keys/'+key).remove()
+    .then(()=>logAction('portal unlink license', ((PORTAL[uid]||{}).email||uid)+' - '+key));
+}
+function sendPortalLogin(email){
+  if(!email){ alert('No email on file.'); return; }
+  if(!confirm('Email '+email+' a link to set their password and sign in to the portal?')) return;
+  auth.sendPasswordResetEmail(email)
+    .then(()=>{ logAction('portal send login', email); alert('Login/password email sent to '+email+'.\nPortal: https://chargepilot.resolutemso.com/portal'); })
+    .catch(e=>alert('Failed: '+e.message));
+}
+async function changePortalEmail(uid){
+  if(CURRENT_ROLE !== 'owner') return;
+  const rec = PORTAL[uid] || {};
+  const newEmail = (prompt('New email for this client portal account:\n(A fresh login is created with the new email and the same linked licenses; the old login is disabled.)', rec.email||'')||'').trim();
+  if(!newEmail || newEmail === rec.email) return;
+  const pw = (prompt('Set a password for the new login (min 6). The client can reset it later.')||'');
+  if(pw.length < 6){ alert('Password must be at least 6 characters.'); return; }
+  let sec;
+  try{
+    sec = firebase.apps.find(a=>a.name==='secondary') || firebase.initializeApp(firebaseConfig,'secondary');
+    const cred = await sec.auth().createUserWithEmailAndPassword(newEmail, pw);
+    const nuid = cred.user.uid;
+    await sec.auth().signOut();
+    await db.ref('portal_users/'+nuid).set({ email:newEmail, name:(rec.name||newEmail), keys:(rec.keys||{}) });
+    await db.ref('portal_users/'+uid).remove();
+    logAction('portal change email', (rec.email||uid)+' -> '+newEmail);
+    alert('Email changed to '+newEmail+'. Tell them to use "Forgot password" if needed.');
+  }catch(e){ alert(e.code==='auth/email-already-in-use'
+      ? 'That email already has an account (admin or another portal user). Choose a different email.'
+      : 'Failed: '+e.message); }
+  finally{ if(sec){ try{ await sec.delete(); }catch(_){ } } }
+}
+function renamePortalClient(uid){
+  if(CURRENT_ROLE !== 'owner') return;
+  const rec = PORTAL[uid] || {};
+  const nm = (prompt('Display name for this client:', rec.name||'')||'').trim();
+  if(!nm) return;
+  db.ref('portal_users/'+uid+'/name').set(nm).then(()=>logAction('portal rename', (rec.email||uid)+' -> '+nm));
+}
+function removePortalClient(uid){
+  if(CURRENT_ROLE !== 'owner') return;
+  const email = (PORTAL[uid]||{}).email || uid;
+  if(!confirm('Remove portal access for '+email+'?\n(They keep a Firebase login but can no longer see any insights. To delete the login itself, use the Firebase Console.)')) return;
+  db.ref('portal_users/'+uid).remove().then(()=>logAction('portal remove account', email));
+}
+function renderPortal(){
+  const list = document.getElementById('portalList');
+  if(!list) return;
+  if(CURRENT_ROLE !== 'owner') return;
+  const allKeys = Object.keys(DATA).sort();
+  const entries = Object.entries(PORTAL);
+  list.innerHTML = '<div style="height:8px"></div>' + (entries.length ? entries.map(([uid,r])=>{
+    r = r || {};
+    const linked = Object.keys(r.keys||{}).filter(k => (r.keys||{})[k]);
+    const chips = linked.length ? linked.map(k=>{
+      const nm = (DATA[k]&&DATA[k].name) ? DATA[k].name : k;
+      return `<span class="keychip" style="display:inline-flex;align-items:center;gap:6px">${String(nm).replace(/</g,'&lt;')}
+        <span style="opacity:.6;font-size:10px">${k}</span>
+        <b style="cursor:pointer;color:var(--red)" onclick="unlinkLicense('${uid}','${k}')">✕</b></span>`;
+    }).join(' ') : '<span class="idle">No licenses linked yet.</span>';
+    const options = allKeys.filter(k=>!linked.includes(k)).map(k=>{
+      const nm = (DATA[k]&&DATA[k].name) ? DATA[k].name : k;
+      return `<option value="${k}">${String(nm).replace(/</g,'&lt;')} — ${k}</option>`;
+    }).join('');
+    return `<div style="padding:12px 0;border-top:1px solid rgba(12,4,89,.08)">
+      <div class="row">
+        <div><b style="font-size:13px;color:var(--navy)">${String(r.name||'').replace(/</g,'&lt;')}</b>
+          <div class="meta" style="margin-top:2px">${String(r.email||uid).replace(/</g,'&lt;')}</div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:9px 0">${chips}</div>
+      <div class="row" style="gap:8px">
+        <select id="cpAdd_${uid}" style="margin:0;flex:1">${options || '<option value="">All licenses already linked</option>'}</select>
+        <button class="copybtn" style="flex:0 0 auto" onclick="linkLicense('${uid}')">＋ Link license</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+        <button class="copybtn" style="background:var(--green)" onclick="sendPortalLogin('${String(r.email||'').replace(/'/g,"\\\\'")}')">Send login email</button>
+        <button class="copybtn" style="background:var(--navy)" onclick="renamePortalClient('${uid}')">Rename</button>
+        <button class="copybtn" style="background:#6b7280" onclick="changePortalEmail('${uid}')">Change email</button>
+        <button class="copybtn" style="background:var(--red)" onclick="removePortalClient('${uid}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="idle">No portal accounts yet. Create one above.</div>');
+}
+
+function toggleMenu(e){
+  if (e.target.closest('.dropdown')) return;   // interacting with the form
+  userMenu.classList.toggle('open');
+  curPw.value = ''; newPw.value = ''; pwMsg.textContent = '';  // fresh each click
+}
+document.addEventListener('click', e => {
+  if (!userMenu.contains(e.target)) userMenu.classList.remove('open');
+});
+
+// ---- license-token signing (private key stays only in THIS browser) ----
+let SIGNKEY = null;
+function _pemToDer(pem){
+  const b64 = pem.replace(/-----[^-]+-----/g,'').replace(/\s+/g,'');
+  const bin = atob(b64); const arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return arr.buffer;
+}
+function _b64url(bytes){
+  let s = btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
+  return s.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function loadSignKey(pem){
+  SIGNKEY = await crypto.subtle.importKey('pkcs8', _pemToDer(pem),
+    {name:'RSASSA-PKCS1-v1_5', hash:'SHA-256'}, false, ['sign']);
+}
+async function signToken(key, exp, mid, npis){
+  const payload = {key:key, status:'approved', exp:exp, mid:mid};
+  // Bind the license to specific Billing Provider NPIs (tamper-proof, since the
+  // client can't forge this signature). Omitted/empty -> no NPI restriction.
+  if(Array.isArray(npis) && npis.length) payload.npis = npis;
+  const pb64 = _b64url(new TextEncoder().encode(JSON.stringify(payload)));
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', SIGNKEY,
+    new TextEncoder().encode(pb64));
+  return pb64 + '.' + _b64url(sig);
+}
+
+// ---- publish an app update (same vendor key signs the installer fingerprint) ----
+async function _sha256Hex(buf){
+  const d = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function signRaw(str){
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', SIGNKEY,
+    new TextEncoder().encode(str));
+  return _b64url(sig);
+}
+async function publishUpdate(){
+  const m = document.getElementById('pubMsg');
+  if(!SIGNKEY){ alert('Load your Signing key first (button in the header).'); return; }
+  const ver = (document.getElementById('pubVer').value||'').trim();
+  const minv = (document.getElementById('pubMin').value||'').trim();
+  const url = (document.getElementById('pubUrl').value||'').trim();
+  const f = document.getElementById('pubFile').files[0];
+  if(!ver || !url){ m.style.color='#d64545'; m.textContent='Enter the version and installer URL.'; return; }
+  if(!/^[0-9]+(\.[0-9]+)*$/.test(ver)){ m.style.color='#d64545'; m.textContent='Version must be numbers + dots, e.g. 4.9.0'; return; }
+  if(minv && !/^[0-9]+(\.[0-9]+)*$/.test(minv)){ m.style.color='#d64545'; m.textContent='Minimum version must be numbers + dots, e.g. 4.8.0'; return; }
+  if(!f){ m.style.color='#d64545'; m.textContent='Pick the built ChargePilot-Setup.exe to fingerprint.'; return; }
+  try{
+    m.style.color='#666'; m.textContent='Hashing & signing installer…';
+    const sha = await _sha256Hex(await f.arrayBuffer());
+    const sig = await signRaw(ver + '|' + sha);
+    const notes = (document.getElementById('pubNotes').value||'').trim();
+    await db.ref('app_update').set({ version:ver, min_version:(minv||''), url:url,
+                                     sha256:sha, sig:sig,
+                                     notes:notes, mandatory:false });
+    // Append to the public release history that powers the download landing page.
+    await db.ref('releases/'+ver.replace(/\./g,'_')).set({
+      version:ver, notes:notes, ts: firebase.database.ServerValue.TIMESTAMP });
+    logAction('publish update', 'v'+ver+(minv?(' (min '+minv+')'):''));
+    m.style.color='#1f9d55';
+    m.textContent = 'Published v'+ver+'. Now run "firebase deploy" to upload the .exe.';
+  }catch(e){ m.style.color='#d64545'; m.textContent='Failed: '+e.message; }
+}
+function _seenNpis(k){
+  // Distinct NPIs this client's app has reported from its workbook(s).
+  const out = new Set();
+  Object.values((DATA[k]||{}).seen_npis || {}).forEach(s => {
+    (s && Array.isArray(s.npis) ? s.npis : []).forEach(n => {
+      const d = String(n||'').replace(/\D/g,''); if(d) out.add(d);
+    });
+  });
+  return Array.from(out);
+}
+async function authorizeDevice(k, mid){
+  if(!SIGNKEY){ alert('Load your Signing key first (button in the header).'); return; }
+  // No NPI restriction anymore — just approve THIS PC with a machine-bound token.
+  if(!confirm('Authorize this PC to run the software?')) return;
+  try{
+    const exp = new Date().getFullYear() + '-12-31';
+    const token = await signToken(k, exp, mid, []);   // [] -> no NPI restriction
+    const u = { status:'approved', expires: exp }; u['tokens/'+mid] = token;
+    db.ref('licenses/'+k).update(u);
+    logAction('authorize device', k+' / '+mid);
+  }catch(e){ alert('Could not authorize device: '+e.message); }
+}
+
+// Claims this PC has dispatched in the last 24h (sum of its hourly quota buckets).
+function _claims24h(c, mid){
+  const q = ((c.quota||{})[mid]) || {};
+  const curH = Math.floor(Date.now()/1000/3600);
+  let n = 0;
+  Object.keys(q).forEach(h => { const d = curH - (+h); if(d>=0 && d<24) n += (+q[h]||0); });
+  return n;
+}
+// Distinct rendering-provider NPIs this PC has billed (reported from its workbook).
+function _renderNpis(c, mid){
+  const s = (c.seen_npis||{})[mid];
+  const arr = (s && Array.isArray(s.npis)) ? s.npis : [];
+  return Array.from(new Set(arr.map(n => String(n||'').replace(/\D/g,'')).filter(Boolean)));
+}
+function revokeDevice(k, mid){
+  if(confirm('Revoke this device? That PC will stop working.')){
+    db.ref('licenses/'+k+'/tokens/'+mid).remove();
+    logAction('revoke device', k+' / '+mid);
+  }
+}
+function deleteDevice(k, mid){
+  if(!confirm('Delete this device entirely (revokes it and clears its records)?')) return;
+  const u = {}; ['heartbeat','tokens','live','logs','seen_npis','quota'].forEach(s => u[s+'/'+mid] = null);
+  db.ref('licenses/'+k).update(u);
+  db.ref('runs/'+k+'/'+mid).remove();   // run history lives in the top-level /runs node
+  logAction('delete device', k+' / '+mid);
+}
+function signKeyStatus(){
+  const el = document.getElementById('signkey');
+  if(el) el.textContent = SIGNKEY ? 'Signing key: loaded' : 'Signing key: NOT loaded';
+}
+async function manageSignKey(){
+  const pem = prompt('Paste your signing PRIVATE key (PKCS#8 PEM).\n'+
+                     'It is stored only in this browser and never uploaded.');
+  if(!pem) return;
+  try{
+    await loadSignKey(pem);
+    localStorage.setItem('oa_signkey', pem);
+    signKeyStatus();
+    alert('Signing key loaded.');
+  }catch(e){ alert('Invalid key: '+e.message); }
+}
+async function _restoreSignKey(){
+  const pem = localStorage.getItem('oa_signkey');
+  if(pem){ try{ await loadSignKey(pem); }catch(e){} }
+  signKeyStatus();
+}
+
+function setStatus(k, s){ event.stopPropagation(); db.ref('licenses/'+k+'/status').set(s); logAction('set status', k+' -> '+s); }
+function deactivate(k){ event.stopPropagation();
+  db.ref('licenses/'+k).update({ status:'pending', token:null }); logAction('deactivate client', k); }
+function killClient(k){ event.stopPropagation();
+  db.ref('licenses/'+k).update({ status:'killed', token:null }); logAction('kill client', k); }
+function activate(k){ event.stopPropagation();
+  // enable the client; each PC is then authorized per-device below
+  db.ref('licenses/'+k).update({ status:'approved' });
+  logAction('activate client', k);
+}
+function genKey(){
+  const cs = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // no ambiguous 0/O/1/I
+  const seg = n => { const a = new Uint8Array(n); crypto.getRandomValues(a);
+                     return Array.from(a, b => cs[b % cs.length]).join(''); };
+  let k; do { k = 'OA-'+seg(4)+'-'+seg(4)+'-'+seg(4); } while (DATA[k]);
+  newKey.value = k;
+}
+function addClient(){
+  const k = newKey.value.trim(); if(!k) return;
+  if(DATA[k]){ alert('That key already exists.'); return; }
+  db.ref('licenses/'+k).update({ status:'pending', name:(newName.value.trim()||k) });
+  logAction('add client', k+(newName.value.trim()?(' ('+newName.value.trim()+')'):''));
+  newKey.value = ''; newName.value = '';
+}
+function updateName(k){
+  const nm = (document.getElementById('mName').value||'').trim();
+  db.ref('licenses/'+k+'/name').set(nm||k);
+  const m=document.getElementById('mMsg'); m.style.color='#1f9d55'; m.textContent='Name saved.';
+}
+function changeKey(oldK){
+  const m=document.getElementById('mMsg');
+  const nk=(document.getElementById('mKey').value||'').trim();
+  if(!nk){ m.style.color='#d64545'; m.textContent='Enter a new key.'; return; }
+  if(nk===oldK){ return; }
+  if(DATA[nk]){ m.style.color='#d64545'; m.textContent='That key already exists.'; return; }
+  if(!confirm('Rename key to "'+nk+'"?\nThe client must enter the NEW key in their app.')) return;
+  const rec = DATA[oldK] || {};
+  // Move the (top-level) run history to the new key too, so insights survive a rename.
+  db.ref('runs/'+oldK).once('value').then(s=>{
+    const rv = s.val();
+    if(rv) return db.ref('runs/'+nk).set(rv).then(()=> db.ref('runs/'+oldK).remove());
+  }).catch(()=>{});
+  db.ref('licenses/'+nk).set(rec)
+    .then(()=> db.ref('licenses/'+oldK).remove())
+    .then(()=>{ logAction('rename key', oldK+' -> '+nk); _dashOff(); dashFor=null; selected=nk; render(); })
+    .catch(e=>{ m.style.color='#d64545'; m.textContent=e.message; });
+}
+function deleteClient(k){
+  if(!confirm('Delete client "'+k+'"? This cannot be undone.')) return;
+  db.ref('runs/'+k).remove();   // drop the (top-level) run history too
+  db.ref('licenses/'+k).remove().then(()=>{ logAction('delete client', k); _dashOff(); dashFor=null; selected=null; render(); });
+}
+function openClient(k){ _dashOff(); selected = k; dashFor = null; render(); }
+function back(){ _dashOff(); selected = null; dashFor = null; render(); }
+
+function copyKey(k, btn, e){
+  if (e) e.stopPropagation();   // don't open the client when copying from the list
+  const done = ok => { const old = btn.innerHTML; btn.innerHTML = ok ? '✓ Copied' : 'Copy failed';
+                       setTimeout(()=> btn.innerHTML = old, 1200); };
+  if (navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(k).then(()=>done(true)).catch(()=>done(false));
+  else {
+    const t = document.createElement('textarea'); t.value = k; document.body.appendChild(t);
+    t.select(); try { document.execCommand('copy'); done(true); } catch(_) { done(false); }
+    document.body.removeChild(t);
+  }
+}
+
+function effStatus(c){  // approved-but-expired shows as inactive
+  const s=(c.status||'pending').toLowerCase();
+  if(s==='approved' && c.expires && new Date().toISOString().slice(0,10) > c.expires) return 'expired';
+  return s;
+}
+function ago(ts){ if(!ts) return 'never';
+  const s = Math.floor(Date.now()/1000 - ts);
+  if(s<60) return s+'s ago'; if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; }
+function fmt(ts){ const d=new Date(ts*1000); return d.toLocaleTimeString(); }
+
+function liveOf(c){ // aggregate live status across machines (stale = not running)
+  const live = c.live || {}; const now = Date.now()/1000;
+  let running=0, agents=0, done=0, total=0, updated=0;
+  Object.values(live).forEach(m => {
+    if(!m) return;
+    const fresh = (now - (m.updated||0)) < 90;   // no recent update => not really running
+    if(m.running && fresh){ running++; agents+=m.agents||0; done+=m.done||0; total+=m.total||0; }
+    updated = Math.max(updated, m.updated||0);
+  });
+  return { running, agents, done, total, updated };
+}
+
+function render(){
+  if(dashFor && DATA[dashFor]) return renderDashboard(dashFor);
+  if(selected && DATA[selected]) return renderDetail(selected);
+  selected = null;
+  listView.style.display='block'; detailView.style.display='none';
+  _showCurrentPage();
+  const q = (document.getElementById('filter').value||'').toLowerCase();
+  const keys = Object.keys(DATA).filter(k =>
+      k.toLowerCase().includes(q) || ((DATA[k].name||'').toLowerCase().includes(q))).sort();
+  if(!keys.length){ list.innerHTML='<div class="empty">No clients.</div>'; return; }
+  list.innerHTML = keys.map(k => {
+    const c = DATA[k]||{}, st=effStatus(c), lv=liveOf(c);
+    const liveTxt = lv.running
+      ? `<span class="live">● ${lv.agents} agent(s) · ${lv.done}/${lv.total}</span>`
+      : `<span class="idle">idle</span>`;
+    return `<div class="card clickable" onclick="openClient('${k}')">
+      <div class="row"><span class="key">${c.name||k}</span><span class="badge ${st}">${st}</span></div>
+      <div class="meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="keychip">${k}</span>
+        <button class="copybtn" onclick="copyKey('${k}', this, event)">📋 Copy</button>
+        <button class="copybtn" style="background:#5b62d6" onclick="openDash('${k}', event)">📊 Insights</button>
+      </div>
+      <div class="meta">${liveTxt} · updated ${ago(lv.updated)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDetail(k){
+  // preserve in-progress edits + focus across live (snapshot-driven) re-renders
+  const prev = {}; ['mName','mKey'].forEach(id=>{const el=document.getElementById(id); if(el) prev[id]=el.value;});
+  const focusId = document.activeElement && document.activeElement.id;
+
+  listView.style.display='none'; detailView.style.display='block';
+  const c = DATA[k]||{}, st=effStatus(c), lv=liveOf(c);
+  const hb = c.heartbeat||{};
+  const machines = Object.keys(hb).length;
+  const lastSeen = Math.max(0, ...Object.values(hb).map(h=>(h&&h.seen)||0));
+  // merge logs across machines
+  let logs = [];
+  Object.values(c.logs||{}).forEach(arr => { if(Array.isArray(arr)) logs = logs.concat(arr); });
+  logs.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const pct = lv.total ? Math.round(100*lv.done/lv.total) : 0;
+  const esc = s => (s||'').replace(/"/g,'&quot;');
+  const tokens = c.tokens || {};
+  const devIds = Array.from(new Set([...Object.keys(hb), ...Object.keys(tokens)]));
+  const isOwner = CURRENT_ROLE === 'owner';
+  const totalClaims24h = devIds.reduce((s,mid)=> s + _claims24h(c, mid), 0);
+  const allRenderNpis = isOwner ? _seenNpis(k) : [];   // unique across all this client's PCs
+  const devicesHtml = devIds.length ? devIds.map(mid => {
+    const authed = !!tokens[mid]; const h = hb[mid] || {}; const nm = h.name || 'Unknown PC';
+    const ver = h.ver ? ('v' + h.ver) : 'v?';
+    const claims = _claims24h(c, mid);
+    const npis = isOwner ? _renderNpis(c, mid) : [];
+    return `<div class="row" style="padding:7px 0;border-top:1px solid #eef0f5">
+      <div><b style="font-size:13px">${nm}</b>
+        <span class="keychip" style="font-size:10px;margin-left:6px">${mid}</span>
+        <span class="keychip" style="font-size:10px;margin-left:4px">${ver}</span>
+        <div class="meta">${authed
+          ? '<span style="color:var(--green)">● authorized</span>'
+          : '<span style="color:#caa106">○ not authorized</span>'} · seen ${ago(h.seen)}</div>
+        <div class="meta">Claims run (last 24h): <b>${claims}</b> / 2500</div>
+        ${isOwner ? `<div class="meta">Rendering providers (${npis.length}): ${npis.length ? npis.join(', ') : '—'}</div>` : ''}</div>
+      <div style="display:flex;gap:6px">${authed
+        ? `<button class="copybtn" onclick="authorizeDevice('${k}','${mid}')">Re-authorize</button>
+           <button class="copybtn" style="background:var(--red)" onclick="revokeDevice('${k}','${mid}')">Revoke</button>`
+        : `<button class="copybtn" style="background:var(--green)" onclick="authorizeDevice('${k}','${mid}')">Authorize</button>`}
+        <button class="copybtn" style="background:#777" onclick="deleteDevice('${k}','${mid}')">Delete</button></div>
+    </div>`; }).join('')
+    : '<div class="idle">No devices yet. Ask the client to run the app once — its Device ID will appear here to authorize.</div>';
+  detailView.innerHTML = `
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <button class="back" onclick="back()">‹ Back</button>
+        <span style="display:flex;gap:8px;align-items:center">
+          <button class="copybtn" style="background:#5b62d6;padding:8px 14px" onclick="openDash('${k}')">📊 Insights</button>
+          <span class="badge ${st}">${st}</span>
+        </span>
+      </div>
+      <div class="key">${c.name||k}</div>
+      <div class="meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <span>key:</span><span class="keychip">${k}</span>
+        <button class="copybtn" onclick="copyKey('${k}', this, event)">📋 Copy</button>
+      </div>
+      <div class="meta">machines: ${machines} · last seen: ${ago(lastSeen)}</div>
+      <div class="meta" style="margin-top:10px">
+        ${lv.running ? `<span class="live">● RUNNING — ${lv.agents} agent(s), ${lv.done}/${lv.total} claims</span>`
+                     : `<span class="idle">idle — last ${lv.done}/${lv.total} (${ago(lv.updated)})</span>`}
+      </div>
+      <div class="barwrap"><div class="bar" style="width:${pct}%"></div></div>
+      <div class="meta">expires: ${c.expires || '—'} (auto-expires each year-end; re-activate to renew)</div>
+      ${st==='expired' ? `<div class="notice">⚠ License expired on ${c.expires}. Tap <b>Activate</b> to renew (sets expiry to ${new Date().getFullYear()}-12-31).</div>` : ''}
+      <div class="btns">
+        <button class="${st==='approved'?'b-approve active':'b-pending'}" style="flex:2"
+                onclick="${st==='approved' ? `deactivate('${k}')` : `activate('${k}')`}">
+          ${st==='approved' ? '● ACTIVE — tap to deactivate' : '○ INACTIVE — tap to activate'}
+        </button>
+        <button class="b-kill ${st==='killed'?'active':''}" onclick="killClient('${k}')">
+          ${st==='killed' ? '✓ Killed' : 'Kill'}
+        </button>
+      </div>
+      <div class="meta">Active = client enabled · Inactive = hold · Kill = stop immediately. Each PC is authorized below.</div>
+    </div>
+    <div class="card">
+      <div class="key" style="font-size:14px">Devices (per-PC activation)</div>
+      <div class="meta">Each PC must be authorized separately — so one key can't run everywhere.</div>
+      <div class="meta">Total claims run (last 24h, all PCs): <b>${totalClaims24h}</b></div>
+      ${isOwner ? `<div class="meta" style="margin-bottom:4px">Unique rendering providers (all PCs): <b>${allRenderNpis.length}</b>${allRenderNpis.length ? (' — ' + allRenderNpis.join(', ')) : ''}</div>` : '<div style="height:4px"></div>'}
+      ${devicesHtml}
+    </div>
+    <div class="card">
+      <div class="key" style="font-size:14px">Activity & error logs</div>
+      <div class="logs">${ logs.length ? logs.map(l =>
+          `<div class="ln ${l.level==='error'?'error':'info'}"><span class="t">${fmt(l.ts)}</span>  ${(l.msg||'').replace(/</g,'&lt;')}</div>`
+        ).join('') : '<div class="idle">No logs yet.</div>' }</div>
+    </div>
+    <div class="card">
+      <div class="key" style="font-size:14px">Manage client</div>
+      <input id="mName" placeholder="display name" value="${esc(c.name)}">
+      <button class="addbtn" onclick="updateName('${k}')">Save name</button>
+      <div style="height:12px"></div>
+      <input id="mKey" placeholder="new license key (rename)">
+      <button class="addbtn" onclick="changeKey('${k}')">Change key</button>
+      <div class="hint">Renaming requires the client to enter the NEW key in their app.</div>
+      <div style="height:12px"></div>
+      <button class="b-kill" onclick="deleteClient('${k}')">Delete client</button>
+      <div id="mMsg" class="hint"></div>
+    </div>`;
+
+  ['mName','mKey'].forEach(id=>{const el=document.getElementById(id); if(el && prev[id]!==undefined) el.value=prev[id];});
+  if(focusId){ const el=document.getElementById(focusId);
+    if(el && el.focus){ el.focus(); if(el.setSelectionRange){ const n=el.value.length; try{el.setSelectionRange(n,n);}catch(_){}} } }
+}
+
+// ===================== Insights dashboard (per client) =====================
+// Run history lives in the TOP-LEVEL /runs node (not /licenses), so the list
+// view never pulls it. The dashboard subscribes to /runs/<KEY> lazily on open
+// and unsubscribes on close — only the open client's history is ever fetched.
+let dashFor = null;     // client key whose dashboard is open
+let _dashSig = '';      // last rendered signature — skip redundant live re-renders
+let RUNS = {};          // key -> { mid: { rid: run } } (lazily loaded)
+let RUNS_LOADED = {};   // key -> true once its first /runs snapshot has arrived
+const _esc = s => String(s==null?'':s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function openDash(k, e){
+  if(e) e.stopPropagation();
+  dashFor = k; selected = k; _dashSig = '';
+  if(!RUNS_LOADED[k]){
+    db.ref('runs/'+k).on('value', s => {
+      RUNS[k] = s.val() || {}; RUNS_LOADED[k] = true;
+      if(dashFor === k){ _dashSig = ''; renderDashboard(k); }
+    });
+  }
+  render();
+}
+function _dashOff(){            // drop the live /runs listener for the open client
+  if(dashFor){ try{ db.ref('runs/'+dashFor).off(); }catch(_){ } RUNS_LOADED[dashFor] = false; }
+}
+function closeDash(){ _dashOff(); dashFor = null; _dashSig = ''; render(); }
+
+// Flatten every run across all of a client's machines, newest first.
+function _allRuns(runsMap, hb){
+  const out = [];
+  Object.entries(runsMap || {}).forEach(([mid, runs]) => {
+    Object.entries(runs || {}).forEach(([rid, r]) => {
+      if(!r || typeof r !== 'object') return;
+      const failures = Object.values(r.failures || {}).filter(Boolean);
+      out.push(Object.assign({}, r, { mid, rid,
+        dev: (hb[mid] && hb[mid].name) || mid,
+        ok: +r.ok || 0, failed: +r.failed || 0, total: +r.total || 0,
+        done: +r.done || 0, failures }));
+    });
+  });
+  out.sort((a,b)=>((b.started|| +b.rid||0) - (a.started|| +a.rid||0)));
+  return out;
+}
+function _dashAgg(runs){
+  let ok=0, failed=0, loaded=0; const steps={};
+  runs.forEach(r => { ok+=r.ok; failed+=r.failed; loaded += (r.total||r.done||0);
+    r.failures.forEach(f => { const s=f.step||'Review'; steps[s]=(steps[s]||0)+1; }); });
+  const proc = ok+failed;
+  return { ok, failed, loaded, proc, rate: proc? Math.round(100*ok/proc):0,
+           steps: Object.entries(steps).sort((a,b)=>b[1]-a[1]) };
+}
+function _runRate(r){ const p=r.ok+r.failed; return p? Math.round(100*r.ok/p):0; }
+function _dt(ts){ if(!ts) return '—'; const d=new Date(ts*1000);
+  return d.toLocaleDateString([], {month:'short',day:'numeric'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+function _dur(r){ if(!r.started||!r.finished) return ''; let s=r.finished-r.started;
+  if(s<60) return s+'s'; if(s<3600) return Math.round(s/60)+'m'; return (s/3600).toFixed(1)+'h'; }
+
+function _countUp(){
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const to = +el.getAttribute('data-count') || 0;
+    if(to <= 0){ el.textContent = '0' + (el.dataset.suffix||''); return; }
+    const dur = 700, t0 = performance.now();
+    const tick = now => { const p = Math.min(1,(now-t0)/dur);
+      const v = Math.round(to * (1-Math.pow(1-p,3)));
+      el.textContent = v + (el.dataset.suffix||'');
+      if(p<1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+}
+
+function renderDashboard(k){
+  const c = DATA[k] || {};
+  listView.style.display='none'; detailView.style.display='block';
+
+  // Still fetching this client's /runs node — show a glass loading state.
+  if(!RUNS_LOADED[k]){
+    if(_dashSig === 'loading:'+k) return;
+    _dashSig = 'loading:'+k;
+    detailView.innerHTML = `<div class="dash">
+      <div class="row" style="margin-bottom:12px">
+        <button class="pillbtn" onclick="closeDash()">‹ Client</button>
+        <span class="glass-title" style="margin:0">${_esc(c.name||k)} · Insights</span></div>
+      <div class="glass"><div class="seg-emptied">Loading insights…</div></div></div>`;
+    return;
+  }
+
+  const runs = _allRuns(RUNS[k], c.heartbeat || {});
+  const a = _dashAgg(runs);
+  // Signature: only rebuild when the run data actually changed (avoids the
+  // dashboard re-animating on every unrelated live heartbeat snapshot).
+  const sig = k+'|'+runs.length+'|'+runs.map(r=>r.rid+':'+r.done+':'+r.ok+':'+r.failed+':'+(r.status||'')).join(',');
+  if(sig === _dashSig && document.querySelector('#detailView .dash')) return;
+  _dashSig = sig;
+
+  // Donut (success vs needs-review across all runs)
+  const R=52, CIRC=2*Math.PI*R, off=CIRC*(1-(a.rate/100));
+  const donut = `<svg class="donut" viewBox="0 0 132 132">
+      <circle class="ring" cx="66" cy="66" r="${R}"></circle>
+      <circle class="seg" cx="66" cy="66" r="${R}" stroke="url(#g1)"
+        stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
+        style="--circ:${CIRC.toFixed(1)}"></circle>
+      <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#28d17c"/><stop offset="1" stop-color="#119d5a"/>
+      </linearGradient></defs>
+      <text class="donut-center" x="66" y="64" text-anchor="middle">${a.rate}%</text>
+      <text class="donut-sub" x="66" y="80" text-anchor="middle">SUCCESS</text>
+    </svg>`;
+
+  // Trend — last 16 runs, oldest→newest, stacked ok/needs-review bars
+  const recent = runs.slice(0, 16).reverse();
+  const maxP = Math.max(1, ...recent.map(r=>r.ok+r.failed));
+  const trend = recent.length ? `<div class="trend">${recent.map((r,i)=>{
+      const okH=Math.round(70*r.ok/maxP), bad=Math.round(70*r.failed/maxP);
+      const delay=(i*0.04).toFixed(2);
+      return `<div class="col" title="${_dt(r.started)} · ${r.ok}/${r.ok+r.failed} clean">
+        ${bad?`<div class="r" style="height:${bad}px;animation-delay:${delay}s"></div>`:''}
+        ${okH?`<div class="g" style="height:${okH}px;animation-delay:${delay}s"></div>`:''}
+        <div class="cap">${_runRate(r)}%</div></div>`;
+    }).join('')}</div>` : '<div class="seg-emptied">No runs recorded yet.</div>';
+
+  // Top failure steps
+  const stepMax = Math.max(1, ...a.steps.map(s=>s[1]));
+  const stepsHtml = a.steps.length ? a.steps.slice(0,7).map(([s,n])=>`
+    <div class="stepbar"><div class="row2"><span>${_esc(s)}</span><b>${n}</b></div>
+      <div class="track"><div class="fill" style="width:${Math.round(100*n/stepMax)}%"></div></div></div>`
+    ).join('') : '<div class="seg-emptied">No failures — every claim came through clean. 🎉</div>';
+
+  // Run history with drill-down into each failed/needs-review claim
+  const runsHtml = runs.length ? runs.slice(0,40).map(r=>{
+    const rate=_runRate(r);
+    let cls='ok', txt=rate+'% clean';
+    if(r.status==='running'){ cls='run'; txt='running'; }
+    else if(r.status==='stopped'){ cls='stop'; txt='stopped'; }
+    else if(r.failed && r.ok){ cls='part'; }
+    else if(r.failed && !r.ok){ cls='bad'; txt='all flagged'; }
+    const fails = r.failures.slice().sort((x,y)=>(x.row||0)-(y.row||0));
+    return `<details class="run">
+      <summary>
+        <span class="chev">▶</span>
+        <span class="runpill ${cls}">${txt}</span>
+        <span class="runmeta"><b>${r.ok}</b>/${r.ok+r.failed} clean · ${r.total||r.done||0} loaded${r.invalid?` · ${r.invalid} invalid`:''}
+          ${r.test_mode?' · <b>test</b>':''}<br>${_dt(r.started)} · ${_esc(r.dev)}${_dur(r)?` · ${_dur(r)}`:''} · v${_esc(r.ver||'?')}</span>
+        <span class="runrate">${rate}%</span>
+      </summary>
+      ${fails.length ? fails.map(f=>`
+        <div class="failrow">
+          <span class="stepchip">${_esc(f.step||'Review')}</span>
+          <span><span class="who">Row ${_esc(f.row)} · ${_esc(f.patient||'')}</span>
+            ${f.attempt>1?`<span class="runmeta"> (attempt ${f.attempt})</span>`:''}
+            <br><span class="why">${_esc(f.reason||'')}</span></span>
+        </div>`).join('')
+        : '<div class="failrow"><span class="why" style="color:var(--green)">All claims clean — nothing to review.</span></div>'}
+    </details>`;
+  }).join('') : '<div class="seg-emptied">This client hasn’t run any claims yet. Once they run the app (on a build that reports runs), insights appear here automatically.</div>';
+
+  const lastRun = runs[0] ? _dt(runs[0].started) : 'never';
+  detailView.innerHTML = `
+    <div class="dash">
+      <div class="row" style="margin-bottom:12px">
+        <button class="pillbtn" onclick="closeDash()">‹ Client</button>
+        <span class="glass-title" style="margin:0">${_esc(c.name||k)} · Insights</span>
+      </div>
+
+      <div class="glass">
+        <div class="glass-title">Overview <span class="sub">last run ${lastRun} · ${runs.length} run(s)</span></div>
+        <div class="kpis">
+          <div class="kpi"><div class="n" data-count="${a.loaded}">0</div><div class="l">Claims loaded</div></div>
+          <div class="kpi"><div class="n green" data-count="${a.ok}">0</div><div class="l">Succeeded</div></div>
+          <div class="kpi"><div class="n red" data-count="${a.failed}">0</div><div class="l">Failed / review</div></div>
+          <div class="kpi"><div class="n amber" data-count="${a.rate}" data-suffix="%">0</div><div class="l">Success rate</div></div>
+        </div>
+      </div>
+
+      <div class="glass d2">
+        <div class="glass-title">Success breakdown</div>
+        <div class="donutwrap">${donut}
+          <div class="legend">
+            <div><span class="dot" style="background:#19c37d"></span> Clean &amp; saved — <b>${a.ok}</b></div>
+            <div><span class="dot" style="background:#d64545"></span> Failed / needs review — <b>${a.failed}</b></div>
+            <div><span class="dot" style="background:rgba(12,4,89,.2)"></span> Total processed — <b>${a.proc}</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass d3">
+        <div class="glass-title">Success trend <span class="sub">recent runs</span></div>
+        ${trend}
+      </div>
+
+      <div class="glass d3">
+        <div class="glass-title">Where claims fail <span class="sub">by step</span></div>
+        ${stepsHtml}
+      </div>
+
+      <div class="glass d4">
+        <div class="glass-title">Run history <span class="sub">tap a run for failed claims</span></div>
+        ${runsHtml}
+      </div>
+    </div>`;
+  _countUp();
+}
+</script>
+</body>
+</html>

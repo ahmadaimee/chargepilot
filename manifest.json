@@ -1,0 +1,9 @@
+{
+  "name": "OA License Admin",
+  "short_name": "OA Admin",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0c0459",
+  "theme_color": "#0c0459",
+  "icons": []
+}
