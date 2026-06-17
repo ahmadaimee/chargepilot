@@ -43,6 +43,14 @@
          box-shadow:0 12px 30px rgba(12,4,89,.28);transition:transform .12s ease, box-shadow .12s ease}
   .dlbtn:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(12,4,89,.34)}
   .dlbtn svg{width:20px;height:20px}
+  /* continuous attention animation on the download buttons (pause on hover) */
+  @keyframes dlPulse{0%,100%{transform:translateY(0);box-shadow:0 12px 30px rgba(12,4,89,.28)}
+    50%{transform:translateY(-3px);box-shadow:0 20px 44px rgba(0,103,192,.5)}}
+  @keyframes dlArrow{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+  #dlBtn,#dlBtn2{animation:dlPulse 1.8s ease-in-out infinite;will-change:transform}
+  #dlBtn:hover,#dlBtn2:hover{animation-play-state:paused}
+  #dlBtn svg{animation:dlArrow 1.2s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){ #dlBtn,#dlBtn2,#dlBtn svg{animation:none} }
   .dlmeta{font-size:13px;color:var(--faint)}
   .trust{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin-top:30px;color:var(--mute);
          font-size:13.5px;font-weight:600}
