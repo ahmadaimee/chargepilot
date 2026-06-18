@@ -33,7 +33,7 @@
            backdrop-filter:blur(22px) saturate(180%); border-bottom:1px solid rgba(255,255,255,.6);
            box-shadow:0 4px 22px rgba(12,4,89,.06); }
   header small { font-weight:500; color:var(--mute); }
-  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand{ display:flex; align-items:center; gap:11px; cursor:pointer; }
   .brand .logo{ width:34px; height:34px; border-radius:10px; flex:0 0 auto; color:#fff;
         background:linear-gradient(135deg,var(--navy),var(--blue));
         display:flex; align-items:center; justify-content:center; font-weight:800; font-size:19px;
@@ -343,7 +343,7 @@
 <div class="app-bg"><i></i><i></i><i></i></div>
 <div class="topbar">
 <header>
-  <span class="brand">
+  <span class="brand" onclick="goHome()" title="Home">
     <span class="logo">C</span>
     <span class="bt">
       <span class="nm">ChargePilot<sup>™</sup> &nbsp;<span style="font-weight:600;color:var(--mute)">Admin</span></span>
@@ -554,6 +554,8 @@ function showPage(p){
   render();
   try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
 }
+// Logo click -> default page (Clients) for any signed-in admin/owner.
+function goHome(){ if(auth.currentUser && CURRENT_ROLE) showPage('clients'); }
 
 const SESSION_MS = 24*60*60*1000;  // auto sign-out after 24 hours
 function signIn(){

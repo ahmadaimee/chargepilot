@@ -121,11 +121,12 @@
   @media (max-width:640px){ h1{font-size:34px} .hero{padding:54px 0 40px} }
   @media (max-width:560px){
     .navlinks a:not(.cta):not(.login){display:none}
-    .nav{height:auto;flex-wrap:wrap;gap:10px;padding:10px 0}
-    .navlinks{gap:8px}
+    .nav{height:auto;flex-wrap:wrap;gap:8px;padding:9px 0}
+    .navlinks{gap:7px;flex-wrap:wrap;justify-content:flex-end}
     .byline{display:none}
-    .brand{font-size:17px}
-    .navlinks .login,.navlinks .cta{padding:8px 13px;font-size:13px}
+    .brand{font-size:16px;gap:9px}
+    .logo{width:30px;height:30px;font-size:16px}
+    .navlinks .login,.navlinks .cta{padding:6px 11px;font-size:12.5px;border-radius:9px}
     h1{font-size:29px;margin-top:16px}
     .sub{font-size:16px}
     .btnrow{flex-direction:column;align-items:stretch;width:100%}
@@ -141,7 +142,7 @@
 <body>
 <header>
   <div class="wrap nav">
-    <div class="brand">
+    <div class="brand" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer" title="Back to top">
       <span class="logo">C</span>
       <span class="brandtext">
         <span class="nm">ChargePilot<sup>™</sup></span>

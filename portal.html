@@ -39,7 +39,7 @@
           padding:11px 16px; color:var(--navy); background:rgba(255,255,255,.6);
           -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
           border-bottom:1px solid rgba(255,255,255,.6); box-shadow:0 4px 22px rgba(12,4,89,.06); }
-  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand{ display:flex; align-items:center; gap:11px; cursor:pointer; }
   .brand .logo{ width:34px; height:34px; border-radius:10px; flex:0 0 auto; color:#fff;
         background:linear-gradient(135deg,var(--navy),var(--blue)); display:flex; align-items:center;
         justify-content:center; font-weight:800; font-size:19px;
@@ -196,7 +196,7 @@
 <body>
 <div class="app-bg"><i></i><i></i><i></i></div>
 <header>
-  <span class="brand">
+  <span class="brand" onclick="goHome()" title="Home">
     <span class="logo">C</span>
     <span class="bt">
       <span class="nm">ChargePilot<sup>™</sup> &nbsp;<span style="font-weight:600;color:var(--mute)">Insights</span></span>
@@ -277,6 +277,9 @@ function signIn(){
 function signOutNow(){ KEYS=[]; RUNS={}; LIC={}; selKey=null; auth.signOut(); }
 function togglePw(btn){ const p=document.getElementById('pass'); const show=p.type==='password';
   p.type = show?'text':'password'; btn.textContent = show?'Hide':'Show'; }
+// Logo click -> default page (the client's first license insights).
+function goHome(){ if(KEYS && KEYS.length){ selKey = KEYS[0]; renderSidebar(); renderDash(); }
+  try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); } }
 function resetPw(){
   const e = (document.getElementById('email').value||'').trim();
   const el = document.getElementById('loginErr');
