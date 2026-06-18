@@ -224,14 +224,15 @@
     #page-updates .card, #page-team .card, #page-errors .card, #page-audit .card{ max-width:none; }
   }
   @media(max-width:560px){
-    header{ padding:9px 12px; }
+    header{ padding:9px 12px; flex-wrap:wrap; gap:8px; }
+    .brand{ flex:1 1 auto; min-width:0; }
     .brand .logo{ width:30px; height:30px; font-size:17px; }
     .brand .bt .nm{ font-size:13.5px; }
     .brand .bt .by{ display:none; }
     #signkey{ display:none; }
-    #who{ display:inline-block; max-width:108px; overflow:hidden; text-overflow:ellipsis;
+    #who{ display:inline-block; max-width:96px; overflow:hidden; text-overflow:ellipsis;
           white-space:nowrap; vertical-align:middle; }
-    header > span:last-child{ gap:7px; }
+    header > span:last-child{ gap:7px; flex-wrap:wrap; justify-content:flex-end; flex:0 0 auto; }
     .logout, #signbtn{ padding:7px 10px; font-size:12px; border-radius:10px; }
     main{ padding:12px 12px 26px; }
     .card{ padding:14px; border-radius:16px; }
@@ -539,6 +540,7 @@ function _setHH(){
   if (h) document.documentElement.style.setProperty('--hh', h.offsetHeight + 'px');
 }
 window.addEventListener('resize', _setHH);
+window.addEventListener('load', _setHH);
 let currentPage = 'clients';
 const PAGES = ['clients','updates','team','errors','audit','portal'];
 function _pageAllowed(p){ return p === 'clients' || CURRENT_ROLE === 'owner'; }
@@ -672,6 +674,7 @@ function applyRoleUI(){
   }
   if (!_pageAllowed(currentPage)) currentPage = 'clients';
   if (!selected && !dashFor) render();   // refresh tab highlight + page visibility
+  _setHH();   // header height may change once the role label is shown
 }
 
 // ---- error feed: errors reported by client apps (Owner-only read) ----

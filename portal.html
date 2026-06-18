@@ -274,7 +274,10 @@ function signIn(){
                                   document.getElementById('pass').value)
       .catch(e => document.getElementById('loginErr').textContent = e.message);
 }
-function signOutNow(){ KEYS=[]; RUNS={}; LIC={}; selKey=null; auth.signOut(); }
+function signOutNow(){ KEYS=[]; RUNS={}; LIC={}; selKey=null;
+  const d=document.getElementById('dash'); if(d) d.innerHTML='';
+  const n=document.getElementById('navlist'); if(n) n.innerHTML='';
+  auth.signOut(); }
 function togglePw(btn){ const p=document.getElementById('pass'); const show=p.type==='password';
   p.type = show?'text':'password'; btn.textContent = show?'Hide':'Show'; }
 // Logo click -> default page (the client's first license insights).
@@ -320,7 +323,7 @@ function changePw(){
 
 auth.onAuthStateChanged(u => {
   document.getElementById('login').style.display = u ? 'none' : 'block';
-  document.getElementById('app').style.display   = u ? 'block' : 'none';
+  document.getElementById('app').style.display   = 'none';   // revealed only once confirmed a client (avoids insights flash for admins)
   document.getElementById('logout').style.display = u ? 'inline-block' : 'none';
   document.getElementById('caret').style.display = u ? 'inline' : 'none';
   document.getElementById('who').textContent = u ? (u.email||'') : '';
@@ -336,6 +339,7 @@ function onSignedIn(u){
     .catch(()=> _startPortal(u));
 }
 function _startPortal(u){
+  document.getElementById('app').style.display = 'block';   // confirmed a client — show the portal
   db.ref('portal_users/'+u.uid).on('value', s => {
     const rec = s.val();
     if(!rec){

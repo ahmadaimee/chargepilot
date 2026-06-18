@@ -82,7 +82,7 @@
   .vnotes li{margin:3px 0}
   .empty{color:var(--faint);text-align:center;padding:18px}
 
-  .navlinks{display:flex;align-items:center;gap:24px}
+  .navlinks{display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:flex-end}
   .navlinks a{text-decoration:none;font-weight:600;font-size:14px;color:var(--ink)}
   .navlinks a:hover{color:var(--blue)}
   .navlinks .cta:hover{background:var(--blue2);color:#fff}
@@ -119,14 +119,16 @@
   .foot a{color:var(--blue);text-decoration:none;font-weight:600}
 
   @media (max-width:640px){ h1{font-size:34px} .hero{padding:54px 0 40px} }
-  @media (max-width:560px){
+  @media (max-width:760px){
     .navlinks a:not(.cta):not(.login){display:none}
-    .nav{height:auto;flex-wrap:wrap;gap:8px;padding:9px 0}
-    .navlinks{gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .nav{height:auto;flex-wrap:wrap;gap:10px;padding:10px 0}
+    .navlinks{gap:10px;flex-wrap:wrap;justify-content:flex-end}
     .byline{display:none}
     .brand{font-size:16px;gap:9px}
     .logo{width:30px;height:30px;font-size:16px}
-    .navlinks .login,.navlinks .cta{padding:6px 11px;font-size:12.5px;border-radius:9px}
+    .navlinks .login,.navlinks .cta{padding:7px 13px;font-size:13px;border-radius:9px}
+  }
+  @media (max-width:560px){
     h1{font-size:29px;margin-top:16px}
     .sub{font-size:16px}
     .btnrow{flex-direction:column;align-items:stretch;width:100%}
