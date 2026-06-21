@@ -293,7 +293,10 @@
   .donut circle{ fill:none; stroke-width:14; stroke-linecap:round; transform:rotate(-90deg);
                  transform-origin:50% 50%; }
   .donut .ring{ stroke:rgba(12,4,89,.08); }
-  .donut .seg{ animation:drawDonut 1.1s cubic-bezier(.2,.8,.2,1) both; }
+  .donut .seg{ animation:drawDonut 1.1s cubic-bezier(.2,.8,.2,1) both;
+               transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1); }
+  .trend .col .r, .trend .col .g{ transition:height .6s cubic-bezier(.2,.8,.2,1); }
+  .stepbar .fill{ transition:width .6s cubic-bezier(.2,.8,.2,1); }
   .donut-center{ font-size:24px; font-weight:800; fill:var(--navy); }
   .donut-sub{ font-size:9px; fill:#6b7280; letter-spacing:1px; }
   .legend{ font-size:13px; color:#33384a; } .legend div{ display:flex; align-items:center; gap:8px; margin:5px 0; }
@@ -1426,6 +1429,42 @@ function _dt(ts){ if(!ts) return '—'; const d=new Date(ts*1000);
 function _dur(r){ if(!r.started||!r.finished) return ''; let s=r.finished-r.started;
   if(s<60) return s+'s'; if(s<3600) return Math.round(s/60)+'m'; return (s/3600).toFixed(1)+'h'; }
 
+// Smoothly tick a number element from its CURRENT value to `to` (used on live
+// dashboard updates so counters animate the delta instead of snapping/flashing).
+function _animNum(el, to){
+  if(!el) return;
+  const suf = el.dataset.suffix || '';
+  const from = parseInt(el.textContent, 10);
+  if(isNaN(from) || from === to){ el.textContent = to + suf; return; }
+  const dur = 500, t0 = performance.now();
+  const tick = now => { const p = Math.min(1, (now-t0)/dur);
+    el.textContent = Math.round(from + (to-from)*(1-Math.pow(1-p,3))) + suf;
+    if(p<1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+
+// Patch a live dashboard in place. Persistent elements (KPIs, donut, legend) are
+// updated so CSS transitions animate them; variable-length sections (trend, steps,
+// run history) get their inner HTML refreshed (no flash; expanded rows stay open).
+function _patchDash(d){
+  const root = document.querySelector('#detailView .dash'); if(!root) return;
+  const ns = root.querySelectorAll('.kpis .n');
+  _animNum(ns[0], d.a.loaded); _animNum(ns[1], d.a.ok);
+  _animNum(ns[2], d.a.failed); _animNum(ns[3], d.a.rate);
+  const sub = root.querySelector('#dashSub');
+  if(sub) sub.textContent = `last run ${d.lastRun} · ${d.runsCount} run(s)`;
+  const seg = root.querySelector('.donut .seg');
+  if(seg) seg.style.strokeDashoffset = d.off.toFixed(1);   // glides via CSS transition
+  const dc = root.querySelector('.donut-center'); if(dc) dc.textContent = d.a.rate+'%';
+  const lg = root.querySelectorAll('#dashLegend b');
+  if(lg[0]) lg[0].textContent = d.a.ok;
+  if(lg[1]) lg[1].textContent = d.a.failed;
+  if(lg[2]) lg[2].textContent = d.a.proc;
+  const t = root.querySelector('#dashTrend'); if(t) t.innerHTML = d.trend;
+  const s = root.querySelector('#dashSteps'); if(s) s.innerHTML = d.stepsHtml;
+  const rh = root.querySelector('#dashRuns'); if(rh) rh.innerHTML = d.runsHtml;
+}
+
 function _countUp(animate){
   document.querySelectorAll('[data-count]').forEach(el => {
     const to = +el.getAttribute('data-count') || 0;
@@ -1554,6 +1593,15 @@ function renderDashboard(k){
   }).join('') : '<div class="seg-emptied">This client hasn’t run any claims yet. Once they run the app (on a build that reports runs), insights appear here automatically.</div>';
 
   const lastRun = runs[0] ? _dt(runs[0].started) : 'never';
+
+  // LIVE UPDATE: the dashboard is already on screen for this client → patch the
+  // changing values IN PLACE so the donut needle glides, counters tick, and bars
+  // slide (CSS transitions) — no rebuild, so nothing flashes or collapses.
+  if(!dashFresh && document.querySelector('#detailView .dash')){
+    _patchDash({off, a, lastRun, runsCount:runs.length, trend, stepsHtml, runsHtml});
+    return;   // _dashKey/_dashSig already set above
+  }
+
   detailView.innerHTML = `
     <div class="dash">
       <div class="row" style="margin-bottom:12px">
@@ -1562,7 +1610,7 @@ function renderDashboard(k){
       </div>
 
       <div class="glass">
-        <div class="glass-title">Overview <span class="sub">last run ${lastRun} · ${runs.length} run(s)</span></div>
+        <div class="glass-title">Overview <span class="sub" id="dashSub">last run ${lastRun} · ${runs.length} run(s)</span></div>
         <div class="kpis">
           <div class="kpi"><div class="n" data-count="${a.loaded}">0</div><div class="l">Claims loaded</div></div>
           <div class="kpi"><div class="n green" data-count="${a.ok}">0</div><div class="l">Succeeded</div></div>
@@ -1574,7 +1622,7 @@ function renderDashboard(k){
       <div class="glass d2">
         <div class="glass-title">Success breakdown</div>
         <div class="donutwrap">${donut}
-          <div class="legend">
+          <div class="legend" id="dashLegend">
             <div><span class="dot" style="background:#19c37d"></span> Clean &amp; saved — <b>${a.ok}</b></div>
             <div><span class="dot" style="background:#d64545"></span> Failed / needs review — <b>${a.failed}</b></div>
             <div><span class="dot" style="background:rgba(12,4,89,.2)"></span> Total processed — <b>${a.proc}</b></div>
@@ -1584,17 +1632,17 @@ function renderDashboard(k){
 
       <div class="glass d3">
         <div class="glass-title">Success trend <span class="sub">recent runs</span></div>
-        ${trend}
+        <div id="dashTrend">${trend}</div>
       </div>
 
       <div class="glass d3">
         <div class="glass-title">Where claims fail <span class="sub">by step</span></div>
-        ${stepsHtml}
+        <div id="dashSteps">${stepsHtml}</div>
       </div>
 
       <div class="glass d4">
         <div class="glass-title">Run history <span class="sub">tap a run for failed claims</span></div>
-        ${runsHtml}
+        <div id="dashRuns">${runsHtml}</div>
       </div>
     </div>`;
   _countUp(dashFresh);
