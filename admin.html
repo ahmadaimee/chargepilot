@@ -1374,13 +1374,15 @@ function renderDetail(k){
 let dashFor = null;     // client key whose dashboard is open
 let _dashSig = '';      // last rendered signature — skip redundant live re-renders
 let _dashKey = '';      // client whose dashboard DOM is currently mounted (anim control)
+let _openRuns = new Set();  // run rows the user expanded — kept open across live refreshes
+function _toggleRun(rk, el){ if(el.open) _openRuns.add(rk); else _openRuns.delete(rk); }
 let RUNS = {};          // key -> { mid: { rid: run } } (lazily loaded)
 let RUNS_LOADED = {};   // key -> true once its first /runs snapshot has arrived
 const _esc = s => String(s==null?'':s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 
 function openDash(k, e){
   if(e) e.stopPropagation();
-  dashFor = k; selected = k; _dashSig = ''; _dashKey = '';
+  dashFor = k; selected = k; _dashSig = ''; _dashKey = ''; _openRuns.clear();
   if(!RUNS_LOADED[k]){
     db.ref('runs/'+k).on('value', s => {
       RUNS[k] = s.val() || {}; RUNS_LOADED[k] = true;
@@ -1514,21 +1516,31 @@ function renderDashboard(k){
 
   // Run history with drill-down into each failed/needs-review claim
   const runsHtml = runs.length ? runs.slice(0,40).map(r=>{
-    const rate=_runRate(r);
-    let cls='ok', txt=rate+'% clean';
-    if(_runLive(r)){ cls='run'; txt='running'; }
+    const live = _runLive(r);
+    const proc = r.ok + r.failed;                 // claims completed so far
+    const loaded = r.total || r.done || 0;        // total claims in this run
+    const rate = _runRate(r);                     // success rate (clean / processed)
+    const prog = loaded ? Math.round(100*Math.min(loaded, (r.done||proc))/loaded) : 0; // progress
+    let cls='ok', txt=rate+'% clean', rpct=rate+'%';
+    if(live){ cls='run'; txt='running'; rpct=prog+'%'; }      // show PROGRESS while running
     else if(r.status==='stopped'){ cls='stop'; txt='stopped'; }
     else if(r.status==='running'){ cls='stop'; txt='ended'; }   // was "running" but the instance is gone (crash/closed)
     else if(r.failed && r.ok){ cls='part'; }
     else if(r.failed && !r.ok){ cls='bad'; txt='all flagged'; }
+    // While running, show live PROGRESS (processed/total + clean·review tally) instead
+    // of a "0/0 clean" that looks broken before any claim has finished.
+    const metric = live
+      ? `<b>${r.done||proc}</b>/${loaded} processed${proc?` · ${r.ok} clean / ${r.failed} review`:''}`
+      : `<b>${r.ok}</b>/${proc} clean · ${loaded} loaded`;
     const fails = r.failures.slice().sort((x,y)=>(x.row||0)-(y.row||0));
-    return `<details class="run">
+    const rk = r.mid+'/'+r.rid;   // stable key so an expanded row stays open across refreshes
+    return `<details class="run" ${_openRuns.has(rk)?'open':''} ontoggle="_toggleRun('${rk}',this)">
       <summary>
         <span class="chev">▶</span>
-        <span class="runpill ${cls}">${cls==='run'?'<span class="spinner white"></span> ':''}${txt}</span>
-        <span class="runmeta"><b>${r.ok}</b>/${r.ok+r.failed} clean · ${r.total||r.done||0} loaded${r.invalid?` · ${r.invalid} invalid`:''}
+        <span class="runpill ${cls}">${live?'<span class="spinner white"></span> ':''}${txt}</span>
+        <span class="runmeta">${metric}${r.invalid?` · ${r.invalid} invalid`:''}
           ${r.test_mode?' · <b>test</b>':''}<br>${_dt(r.started)} · ${_esc(r.dev)}${_dur(r)?` · ${_dur(r)}`:''} · v${_esc(r.ver||'?')}</span>
-        <span class="runrate">${rate}%</span>
+        <span class="runrate">${rpct}</span>
       </summary>
       ${fails.length ? fails.map(f=>`
         <div class="failrow">
