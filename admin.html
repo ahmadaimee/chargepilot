@@ -338,6 +338,26 @@
             padding:9px 16px; font-weight:700; box-shadow:0 4px 14px rgba(12,4,89,.1);
             -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); flex:0 0 auto; }
   .seg-emptied{ color:#6b7280; text-align:center; padding:18px; font-size:13px; }
+
+  /* ---- live spinners + flash-free in-place updates ---- */
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinner{ display:inline-block; width:12px; height:12px; vertical-align:-2px;
+            border:2px solid rgba(40,209,124,.25); border-top-color:#28d17c; border-radius:50%;
+            animation:spin .8s linear infinite; }
+  .spinner.lg{ width:30px; height:30px; border-width:3px; }
+  .spinner.white{ border-color:rgba(255,255,255,.45); border-top-color:#fff; }
+  .spinner.blue{ border-color:rgba(91,98,214,.22); border-top-color:#5b62d6; }
+  .dash-loading{ display:flex; flex-direction:column; align-items:center; gap:13px;
+                 padding:30px 18px; color:#6b7280; font-size:13px; }
+  /* On a live (data-changed) re-render of the SAME view we keep the DOM in place and
+     suppress every entry animation (cards, glass, donut, trend/step bars), so
+     in-place updates no longer flash or re-draw from scratch. */
+  #detailView.no-card-anim .card,
+  #detailView.no-card-anim .glass,
+  #detailView.no-card-anim .donut .seg,
+  #detailView.no-card-anim .trend .r,
+  #detailView.no-card-anim .trend .g,
+  #detailView.no-card-anim .stepbar .fill{ animation:none !important; }
 </style>
 </head>
 <body>
@@ -1151,8 +1171,13 @@ function deleteClient(k){
   db.ref('runs/'+k).remove();   // drop the (top-level) run history too
   db.ref('licenses/'+k).remove().then(()=>{ logAction('delete client', k); _dashOff(); dashFor=null; selected=null; render(); });
 }
-function openClient(k){ _dashOff(); selected = k; dashFor = null; render(); }
-function back(){ _dashOff(); selected = null; dashFor = null; render(); }
+function openClient(k){ _dashOff(); selected = k; dashFor = null; _detailKey=''; render(); }
+function back(){ _dashOff(); selected = null; dashFor = null; _detailKey=''; render(); }
+
+// Render guards: only rebuild the DOM when the data the view shows actually
+// changed, so unrelated live snapshots (heartbeats) no longer flash the screen.
+let _listSig = '';                 // last list-view signature
+let _detailKey = '', _detailSig = '';  // last detail-view client + signature
 
 function copyKey(k, btn, e){
   if (e) e.stopPropagation();   // don't open the client when copying from the list
@@ -1199,11 +1224,16 @@ function render(){
   const q = (document.getElementById('filter').value||'').toLowerCase();
   const keys = Object.keys(DATA).filter(k =>
       k.toLowerCase().includes(q) || ((DATA[k].name||'').toLowerCase().includes(q))).sort();
-  if(!keys.length){ list.innerHTML='<div class="empty">No clients.</div>'; return; }
+  if(!keys.length){ list.innerHTML='<div class="empty">No clients.</div>'; _listSig='empty'; return; }
+  // Skip the rebuild (and its flicker) when nothing the list shows has changed.
+  const sig = q+'#'+keys.map(k=>{ const c=DATA[k]||{}, lv=liveOf(c);
+      return k+':'+effStatus(c)+':'+lv.running+':'+lv.agents+':'+lv.done+':'+lv.total; }).join(',');
+  if(sig===_listSig && list.querySelector('.card')) return;
+  _listSig = sig;
   list.innerHTML = keys.map(k => {
     const c = DATA[k]||{}, st=effStatus(c), lv=liveOf(c);
     const liveTxt = lv.running
-      ? `<span class="live">● ${lv.agents} agent(s) · ${lv.done}/${lv.total}</span>`
+      ? `<span class="live"><span class="spinner"></span> ${lv.agents} agent(s) · ${lv.done}/${lv.total}</span>`
       : `<span class="idle">idle</span>`;
     return `<div class="card clickable" onclick="openClient('${k}')">
       <div class="row"><span class="key">${c.name||k}</span><span class="badge ${st}">${st}</span></div>
@@ -1218,10 +1248,6 @@ function render(){
 }
 
 function renderDetail(k){
-  // preserve in-progress edits + focus across live (snapshot-driven) re-renders
-  const prev = {}; ['mName','mKey'].forEach(id=>{const el=document.getElementById(id); if(el) prev[id]=el.value;});
-  const focusId = document.activeElement && document.activeElement.id;
-
   listView.style.display='none'; detailView.style.display='block';
   const c = DATA[k]||{}, st=effStatus(c), lv=liveOf(c);
   const hb = c.heartbeat||{};
@@ -1237,6 +1263,23 @@ function renderDetail(k){
   const devIds = Array.from(new Set([...Object.keys(hb), ...Object.keys(tokens)]));
   const isOwner = CURRENT_ROLE === 'owner';
   const totalClaims24h = devIds.reduce((s,mid)=> s + _claims24h(c, mid), 0);
+
+  // Only rebuild when something visible changed. On an unchanged snapshot we leave
+  // the DOM untouched (no flash, edits/focus preserved); on a real change we update
+  // in place WITHOUT replaying the entry animation (fresh = first open of this client).
+  const sig = [k, st, lv.running, lv.agents, lv.done, lv.total, c.name||'', c.expires||'',
+      logs.length, (logs[0]&&logs[0].ts)||0,
+      devIds.map(mid=>mid+':'+(!!tokens[mid])+':'+_claims24h(c,mid)+':'+((hb[mid]&&hb[mid].seen)||0)
+                       +':'+((hb[mid]&&hb[mid].ver)||'')).join('|')
+    ].join('~');
+  const fresh = (_detailKey !== k);
+  if(!fresh && sig===_detailSig && detailView.querySelector('.card')) return;
+  detailView.classList.toggle('no-card-anim', !fresh);   // animate only on first open
+  _detailKey = k; _detailSig = sig;
+
+  // preserve in-progress edits + focus across the rebuild
+  const prev = {}; ['mName','mKey'].forEach(id=>{const el=document.getElementById(id); if(el) prev[id]=el.value;});
+  const focusId = document.activeElement && document.activeElement.id;
   const allRenderNpis = isOwner ? _seenNpis(k) : [];   // unique across all this client's PCs
   const devicesHtml = devIds.length ? devIds.map(mid => {
     const authed = !!tokens[mid]; const h = hb[mid] || {}; const nm = h.name || 'Unknown PC';
@@ -1276,7 +1319,7 @@ function renderDetail(k){
       </div>
       <div class="meta">machines: ${machines} · last seen: ${ago(lastSeen)}</div>
       <div class="meta" style="margin-top:10px">
-        ${lv.running ? `<span class="live">● RUNNING — ${lv.agents} agent(s), ${lv.done}/${lv.total} claims</span>`
+        ${lv.running ? `<span class="live"><span class="spinner"></span> RUNNING — ${lv.agents} agent(s), ${lv.done}/${lv.total} claims</span>`
                      : `<span class="idle">idle — last ${lv.done}/${lv.total} (${ago(lv.updated)})</span>`}
       </div>
       <div class="barwrap"><div class="bar" style="width:${pct}%"></div></div>
@@ -1330,13 +1373,14 @@ function renderDetail(k){
 // and unsubscribes on close — only the open client's history is ever fetched.
 let dashFor = null;     // client key whose dashboard is open
 let _dashSig = '';      // last rendered signature — skip redundant live re-renders
+let _dashKey = '';      // client whose dashboard DOM is currently mounted (anim control)
 let RUNS = {};          // key -> { mid: { rid: run } } (lazily loaded)
 let RUNS_LOADED = {};   // key -> true once its first /runs snapshot has arrived
 const _esc = s => String(s==null?'':s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 
 function openDash(k, e){
   if(e) e.stopPropagation();
-  dashFor = k; selected = k; _dashSig = '';
+  dashFor = k; selected = k; _dashSig = ''; _dashKey = '';
   if(!RUNS_LOADED[k]){
     db.ref('runs/'+k).on('value', s => {
       RUNS[k] = s.val() || {}; RUNS_LOADED[k] = true;
@@ -1348,7 +1392,7 @@ function openDash(k, e){
 function _dashOff(){            // drop the live /runs listener for the open client
   if(dashFor){ try{ db.ref('runs/'+dashFor).off(); }catch(_){ } RUNS_LOADED[dashFor] = false; }
 }
-function closeDash(){ _dashOff(); dashFor = null; _dashSig = ''; render(); }
+function closeDash(){ _dashOff(); dashFor = null; _dashSig = ''; _dashKey = ''; render(); }
 
 // Flatten every run across all of a client's machines, newest first.
 function _allRuns(runsMap, hb){
@@ -1380,10 +1424,10 @@ function _dt(ts){ if(!ts) return '—'; const d=new Date(ts*1000);
 function _dur(r){ if(!r.started||!r.finished) return ''; let s=r.finished-r.started;
   if(s<60) return s+'s'; if(s<3600) return Math.round(s/60)+'m'; return (s/3600).toFixed(1)+'h'; }
 
-function _countUp(){
+function _countUp(animate){
   document.querySelectorAll('[data-count]').forEach(el => {
     const to = +el.getAttribute('data-count') || 0;
-    if(to <= 0){ el.textContent = '0' + (el.dataset.suffix||''); return; }
+    if(!animate || to <= 0){ el.textContent = to + (el.dataset.suffix||''); return; }
     const dur = 700, t0 = performance.now();
     const tick = now => { const p = Math.min(1,(now-t0)/dur);
       const v = Math.round(to * (1-Math.pow(1-p,3)));
@@ -1401,11 +1445,13 @@ function renderDashboard(k){
   if(!RUNS_LOADED[k]){
     if(_dashSig === 'loading:'+k) return;
     _dashSig = 'loading:'+k;
+    detailView.classList.remove('no-card-anim');   // fresh open — let it animate in
     detailView.innerHTML = `<div class="dash">
       <div class="row" style="margin-bottom:12px">
         <button class="pillbtn" onclick="closeDash()">‹ Client</button>
         <span class="glass-title" style="margin:0">${_esc(c.name||k)} · Insights</span></div>
-      <div class="glass"><div class="seg-emptied">Loading insights…</div></div></div>`;
+      <div class="glass"><div class="dash-loading"><span class="spinner lg"></span>
+        <div>Loading insights…</div></div></div></div>`;
     return;
   }
 
@@ -1415,7 +1461,11 @@ function renderDashboard(k){
   // dashboard re-animating on every unrelated live heartbeat snapshot).
   const sig = k+'|'+runs.length+'|'+runs.map(r=>r.rid+':'+r.done+':'+r.ok+':'+r.failed+':'+(r.status||'')).join(',');
   if(sig === _dashSig && document.querySelector('#detailView .dash')) return;
-  _dashSig = sig;
+  // animate only the first time this client's dashboard mounts; live updates
+  // refresh in place so the KPIs/charts don't flash on every run snapshot.
+  const dashFresh = !(_dashKey === k && !!document.querySelector('#detailView .dash'));
+  detailView.classList.toggle('no-card-anim', !dashFresh);
+  _dashKey = k; _dashSig = sig;
 
   // Donut (success vs needs-review across all runs)
   const R=52, CIRC=2*Math.PI*R, off=CIRC*(1-(a.rate/100));
@@ -1462,7 +1512,7 @@ function renderDashboard(k){
     return `<details class="run">
       <summary>
         <span class="chev">▶</span>
-        <span class="runpill ${cls}">${txt}</span>
+        <span class="runpill ${cls}">${cls==='run'?'<span class="spinner white"></span> ':''}${txt}</span>
         <span class="runmeta"><b>${r.ok}</b>/${r.ok+r.failed} clean · ${r.total||r.done||0} loaded${r.invalid?` · ${r.invalid} invalid`:''}
           ${r.test_mode?' · <b>test</b>':''}<br>${_dt(r.started)} · ${_esc(r.dev)}${_dur(r)?` · ${_dur(r)}`:''} · v${_esc(r.ver||'?')}</span>
         <span class="runrate">${rate}%</span>
@@ -1522,7 +1572,7 @@ function renderDashboard(k){
         ${runsHtml}
       </div>
     </div>`;
-  _countUp();
+  _countUp(dashFresh);
 }
 </script>
 </body>
