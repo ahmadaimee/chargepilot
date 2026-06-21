@@ -1457,9 +1457,21 @@ function renderDashboard(k){
 
   const runs = _allRuns(RUNS[k], c.heartbeat || {});
   const a = _dashAgg(runs);
-  // Signature: only rebuild when the run data actually changed (avoids the
-  // dashboard re-animating on every unrelated live heartbeat snapshot).
-  const sig = k+'|'+runs.length+'|'+runs.map(r=>r.rid+':'+r.done+':'+r.ok+':'+r.failed+':'+(r.status||'')).join(',');
+
+  // A run is only TRULY "running" if its machine's LIVE heartbeat is still fresh
+  // (updated within 90s) AND this is that machine's most recent run. A run record's
+  // own status stays "running" forever if the app crashed/closed without writing a
+  // final status, so we never trust status alone — we cross-check the live beat.
+  const _live = c.live || {}, _now = Date.now()/1000;
+  const latestRidByMid = {};
+  runs.forEach(r => { if(!(r.mid in latestRidByMid)) latestRidByMid[r.mid] = r.rid; }); // runs are newest-first
+  const _runLive = r => { const m = _live[r.mid];
+    return !!(m && m.running && (_now-(m.updated||0) < 90) && latestRidByMid[r.mid] === r.rid); };
+
+  // Signature: rebuild when run data OR live-running state changes (so a run flips
+  // from "running" to "ended" as soon as its heartbeat goes stale).
+  const _liveSig = Object.entries(_live).map(([mid,m])=>mid+(m&&m.running?'R':'_')+((m&&m.updated)||0)).join(';');
+  const sig = k+'|'+runs.length+'|'+_liveSig+'|'+runs.map(r=>r.rid+':'+r.done+':'+r.ok+':'+r.failed+':'+(r.status||'')+':'+(_runLive(r)?'1':'0')).join(',');
   if(sig === _dashSig && document.querySelector('#detailView .dash')) return;
   // animate only the first time this client's dashboard mounts; live updates
   // refresh in place so the KPIs/charts don't flash on every run snapshot.
@@ -1504,8 +1516,9 @@ function renderDashboard(k){
   const runsHtml = runs.length ? runs.slice(0,40).map(r=>{
     const rate=_runRate(r);
     let cls='ok', txt=rate+'% clean';
-    if(r.status==='running'){ cls='run'; txt='running'; }
+    if(_runLive(r)){ cls='run'; txt='running'; }
     else if(r.status==='stopped'){ cls='stop'; txt='stopped'; }
+    else if(r.status==='running'){ cls='stop'; txt='ended'; }   // was "running" but the instance is gone (crash/closed)
     else if(r.failed && r.ok){ cls='part'; }
     else if(r.failed && !r.ok){ cls='bad'; txt='all flagged'; }
     const fails = r.failures.slice().sort((x,y)=>(x.row||0)-(y.row||0));
