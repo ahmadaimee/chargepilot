@@ -532,6 +532,16 @@ let selected = null; // selected client key (detail view)
 let CURRENT_ROLE = null;  // 'owner' | 'approver' | null — controls Update access
 let ROLES = {};           // /admin_roles snapshot
 
+// Protected super-owner: this account cannot be demoted or removed by anyone
+// except itself. Enforced both here (UI) and in database.rules.json (server).
+const SUPER_OWNER_EMAIL = 'ahmadaimee@outlook.com';
+function _emailOf(uid){ return String(((ROLES[uid]||{}).email)||'').trim().toLowerCase(); }
+function _isSuperOwner(uid){ return _emailOf(uid) === SUPER_OWNER_EMAIL; }
+function _iAmSuperOwner(){
+  const me = auth.currentUser;
+  return !!me && String(me.email||'').trim().toLowerCase() === SUPER_OWNER_EMAIL;
+}
+
 // ---- segment navigation: each section is its own page (left sidebar) ----
 // Keep the sticky sidebar pinned just below the glass header (its height varies
 // with the signed-in email/role line), exposed to CSS as --hh.
@@ -543,7 +553,11 @@ window.addEventListener('resize', _setHH);
 window.addEventListener('load', _setHH);
 let currentPage = 'clients';
 const PAGES = ['clients','updates','team','errors','audit','portal'];
-function _pageAllowed(p){ return p === 'clients' || CURRENT_ROLE === 'owner'; }
+function _pageAllowed(p){
+  if(p === 'clients') return true;
+  if(p === 'updates') return _iAmSuperOwner();   // publishing app updates is restricted to the protected owner
+  return CURRENT_ROLE === 'owner';
+}
 function _showCurrentPage(){
   PAGES.forEach(p => { const el = document.getElementById('page-'+p);
     if(el) el.style.display = (p === currentPage) ? 'block' : 'none'; });
@@ -654,10 +668,13 @@ async function onSignedIn(u){
 // is available to ANY admin (an approver needs it to sign per-PC approvals).
 function applyRoleUI(){
   const owner = CURRENT_ROLE === 'owner';
-  ['updates','team','errors','audit','portal'].forEach(p => {
+  ['team','errors','audit','portal'].forEach(p => {
     const t = document.querySelector('#sidebar .navitem[data-page="'+p+'"]');
     if (t) t.style.display = owner ? 'flex' : 'none';
   });
+  // Updates (publish app versions) is visible ONLY to the protected super-owner.
+  const upd = document.querySelector('#sidebar .navitem[data-page="updates"]');
+  if (upd) upd.style.display = _iAmSuperOwner() ? 'flex' : 'none';
   if (typeof signbtn !== 'undefined' && signbtn)
     signbtn.style.display = CURRENT_ROLE ? 'inline-block' : 'none';
   renderTeam();
@@ -748,6 +765,7 @@ async function addUser(){
 function removeUser(uid){
   if(CURRENT_ROLE !== 'owner') return;
   if(uid === (auth.currentUser&&auth.currentUser.uid)){ alert("You can't remove your own access."); return; }
+  if(_isSuperOwner(uid) && !_iAmSuperOwner()){ alert('This is the protected owner account. Only '+SUPER_OWNER_EMAIL+' can change or remove it.'); return; }
   const owners = Object.values(ROLES).filter(r=>r&&r.role==='owner').length;
   if((ROLES[uid]||{}).role==='owner' && owners<=1){ alert('Cannot remove the last Owner.'); return; }
   const who2 = (ROLES[uid]||{}).email || uid;
@@ -757,6 +775,7 @@ function removeUser(uid){
 function setRole(uid, role){
   if(CURRENT_ROLE !== 'owner') return;
   if(uid === (auth.currentUser&&auth.currentUser.uid)){ alert("You can't change your own role."); return; }
+  if(_isSuperOwner(uid) && !_iAmSuperOwner()){ alert('This is the protected owner account. Only '+SUPER_OWNER_EMAIL+' can change or remove it.'); return; }
   const cur = (ROLES[uid]||{}).role;
   if(cur === role) return;
   const owners = Object.values(ROLES).filter(r=>r&&r.role==='owner').length;
@@ -782,6 +801,8 @@ function renderTeam(){
     const isMe = uid===me;
     const role = (r&&r.role)||'?';
     const email = ((r&&r.email)||uid);
+    const isSuper = _isSuperOwner(uid);
+    const lockedBySuper = isSuper && !_iAmSuperOwner();   // protected from everyone but itself
     const toggle = role==='owner'
       ? `<button class="copybtn" style="background:#6b7280" onclick="setRole('${uid}','approver')">Make approver</button>`
       : `<button class="copybtn" style="background:var(--green)" onclick="setRole('${uid}','owner')">Make owner</button>`;
@@ -789,10 +810,14 @@ function renderTeam(){
       <div class="row">
         <div><b style="font-size:13px">${String(email).replace(/</g,'&lt;')}</b>
           <span class="keychip" style="font-size:10px;margin-left:6px">${role}</span>
+          ${isSuper?'<span class="keychip" style="font-size:10px;margin-left:6px;background:var(--navy);color:#fff">protected owner</span>':''}
           ${isMe?'<span class="meta" style="display:inline">· you</span>':''}</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-        ${isMe ? '<span class="hint">Your own access cannot be changed here.</span>' : `
+        ${isMe ? '<span class="hint">Your own access cannot be changed here.</span>'
+          : lockedBySuper ? `<span class="hint">Protected owner — only ${SUPER_OWNER_EMAIL} can change or remove this account.</span>
+          <button class="copybtn" style="background:var(--navy)" onclick="resetUserPw('${String(email).replace(/'/g,"\\\\'")}')">Reset password</button>`
+          : `
           ${toggle}
           <button class="copybtn" style="background:var(--navy)" onclick="resetUserPw('${String(email).replace(/'/g,"\\\\'")}')">Reset password</button>
           <button class="copybtn" style="background:var(--red)" onclick="removeUser('${uid}')">Remove</button>`}
@@ -1037,6 +1062,15 @@ function revokeDevice(k, mid){
     logAction('revoke device', k+' / '+mid);
   }
 }
+function resetQuota(k, mid){
+  if(!confirm("Reset this PC's 24h claim count to 0?\n\nThe server count is cleared now, and the app clears its local copy automatically the next time the client runs it.")) return;
+  const u = {};
+  u['quota/'+mid] = null;                                            // clear the server buckets
+  u['quota_reset/'+mid] = firebase.database.ServerValue.TIMESTAMP;   // signal the PC to wipe its local mirror
+  db.ref('licenses/'+k).update(u)
+    .then(()=>logAction('reset quota', k+' / '+mid))
+    .catch(e=>alert('Could not reset quota: '+e.message));
+}
 function deleteDevice(k, mid){
   if(!confirm('Delete this device entirely (revokes it and clears its records)?')) return;
   const u = {}; ['heartbeat','tokens','live','logs','seen_npis','quota'].forEach(s => u[s+'/'+mid] = null);
@@ -1222,6 +1256,7 @@ function renderDetail(k){
         ? `<button class="copybtn" onclick="authorizeDevice('${k}','${mid}')">Re-authorize</button>
            <button class="copybtn" style="background:var(--red)" onclick="revokeDevice('${k}','${mid}')">Revoke</button>`
         : `<button class="copybtn" style="background:var(--green)" onclick="authorizeDevice('${k}','${mid}')">Authorize</button>`}
+        <button class="copybtn" style="background:#d9822b" onclick="resetQuota('${k}','${mid}')" title="Clear this PC's 24h claim count">Reset quota</button>
         <button class="copybtn" style="background:#777" onclick="deleteDevice('${k}','${mid}')">Delete</button></div>
     </div>`; }).join('')
     : '<div class="idle">No devices yet. Ask the client to run the app once — its Device ID will appear here to authorize.</div>';
